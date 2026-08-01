@@ -2,6 +2,9 @@
 
 <form method="post">
 
+  <!-- hidden: 明細データ保持 -->
+  <input type="hidden" name="details_data" value='{{ details|tojson }}'>
+
   <h3>受注ヘッダー</h3>
 
   <label>入力者：</label>
@@ -12,24 +15,32 @@
   <br><br>
 
   <label>お客様コード：</label>
-  <input type="text" name="customer_code" value="{{ customer_code or '' }}">
-  <br><br>
-
-  <label>納期：</label>
-  <input type="date" name="delivery_date" value="{{ delivery_date or '' }}">
-  <br><br>
-
-  <label>発送先：</label>
-  <input type="text" name="shipping_address" value="{{ shipping_address or '' }}">
-  <br><br>
-
-  <label>配送方法：</label>
-  <select name="shipping_method">
-    <option value="宅配便" {% if shipping_method == "宅配便" %}selected{% endif %}>宅配便</option>
-    <option value="チャーター便" {% if shipping_method == "チャーター便" %}selected{% endif %}>チャーター便</option>
-    <option value="自社便" {% if shipping_method == "自社便" %}selected{% endif %}>自社便</option>
+  <select name="customer">
+    <option value="">選択して</option>
+    {% for name, data in customers.items() %}
+      <option value="{{ name }}" {% if customer == name %}selected{% endif %}>
+        {{ name }}
+      </option>
+    {% endfor %}
   </select>
   <br><br>
+
+  {% if customer %}
+    <label>発送先：</label>
+    <select name="destination">
+      {% for dest in customers[customer]["destinations"].keys() %}
+        <option value="{{ dest }}" {% if destination == dest %}selected{% endif %}>
+          {{ dest }}
+        </option>
+      {% endfor %}
+    </select>
+    <br><br>
+
+    {% if destination %}
+      <label>住所：</label>
+      <p>{{ customers[customer]["destinations"][destination] }}</p>
+    {% endif %}
+  {% endif %}
 
   <h3>商品追加</h3>
 
@@ -37,7 +48,9 @@
   <select name="product_code">
     <option value="">選択して</option>
     {% for code in products %}
-      <option value="{{ code }}" {% if product_code == code %}selected{% endif %}>{{ code }}</option>
+      <option value="{{ code }}" {% if product_code == code %}selected{% endif %}>
+        {{ code }}
+      </option>
     {% endfor %}
   </select>
 
