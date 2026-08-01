@@ -4,6 +4,7 @@
 
   <label>商品コード：</label>
   <select name="product" onchange="this.form.submit()">
+    <option value="">選択して</option>
     {% for code in products %}
       <option value="{{ code }}" {% if selected_product == code %}selected{% endif %}>
         {{ code }}
