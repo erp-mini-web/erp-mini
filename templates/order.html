@@ -2,7 +2,6 @@
 
 <form method="post">
 
-  <!-- 明細データ保持 -->
   <input type="hidden" name="details_data" value='{{ details|tojson }}'>
 
   <h3>受注ヘッダー</h3>
@@ -14,7 +13,6 @@
   </select>
   <br><br>
 
-  <!-- お客様コード -->
   <label>お客様コード：</label>
   <select name="customer">
     <option value="">選択して</option>
@@ -26,7 +24,6 @@
   </select>
   <br><br>
 
-  <!-- 発送先 -->
   {% if customer %}
     <label>発送先：</label>
     <select name="destination">
@@ -39,19 +36,16 @@
     <br><br>
   {% endif %}
 
-  <!-- 住所 -->
   {% if customer and destination %}
     <label>住所：</label>
     <p>{{ customers[customer]["destinations"][destination] }}</p>
     <br>
   {% endif %}
 
-  <!-- 納期 -->
   <label>納期：</label>
   <input type="date" name="delivery_date" value="{{ delivery_date or '' }}">
   <br><br>
 
-  <!-- 配送方法 -->
   <label>配送方法：</label>
   <select name="shipping_method">
     <option value="宅配便" {% if shipping_method == "宅配便" %}selected{% endif %}>宅配便</option>
@@ -75,7 +69,6 @@
   <label>数量：</label>
   <input type="number" name="quantity" min="1" value="{{ quantity or '' }}">
 
-  <!-- 原材料を表示（常に押せる） -->
   <button type="submit" name="action" value="show_material">
     原材料を表示
   </button>
@@ -98,7 +91,7 @@
     {% endfor %}
   {% endif %}
 
-  <!-- 明細に追加（初期は押せない） -->
+  <!-- ⭐ 明細に追加（初期は無効） -->
   <button type="submit" name="action" value="add_detail" id="addDetailBtn" disabled>
     明細に追加
   </button>
@@ -118,7 +111,7 @@
     <p>まだ明細がありません</p>
   {% endif %}
 
-  <!-- 受注する（初期は押せない） -->
+  <!-- ⭐ 受注する（初期は無効） -->
   <button type="submit" name="action" value="submit_order" id="submitOrderBtn" disabled>
     受注する
   </button>
@@ -127,20 +120,22 @@
 
 <a href="/">メニューに戻る</a>
 
-<!-- ⭐ ボタン制御スクリプト -->
+<!-- ⭐ ボタン制御スクリプト（完全版） -->
 <script>
   window.onload = function() {
 
-    // need が存在するなら「明細に追加」を有効化
-    const needExists = {{ need is defined and need|length > 0 }};
+    // need が存在するか（Jinja → JS の true/false に変換）
+    const needExists = "{{ need is defined and need|length > 0 }}";
     const addDetailBtn = document.getElementById("addDetailBtn");
-    if (addDetailBtn && needExists) {
+
+    if (addDetailBtn && needExists === "True") {
       addDetailBtn.disabled = false;
     }
 
-    // details が存在するなら「受注する」を有効化
-    const detailsCount = {{ details|length }};
+    // details が存在するか
+    const detailsCount = Number("{{ details|length }}");
     const submitOrderBtn = document.getElementById("submitOrderBtn");
+
     if (submitOrderBtn && detailsCount > 0) {
       submitOrderBtn.disabled = false;
     }
