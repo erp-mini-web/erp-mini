@@ -41,35 +41,31 @@ sales_data = []
 
 
 # -------------------------
-# ロールを切る関数
+# ロールを切る関数（選んだロールを使う）
 # -------------------------
-def use_rolls(rolls, need):
+def cut_roll(rolls, selected_length, need):
     """
-    rolls: [100, 80, 55] のようなロール一覧
+    rolls: [100, 80, 55]
+    selected_length: ユーザーが選んだロールの長さ（例：80）
     need: 必要メートル数（例：65）
 
     戻り値:
-      True  → ロールから切れた
-      False → ロールが足りない
+      True → 切れた
+      False → 切れない
     """
 
-    rolls.sort(reverse=True)  # 長い順に並べる
-    remaining = need
+    if selected_length not in rolls:
+        return False
 
-    for i in range(len(rolls)):
-        if remaining <= 0:
-            break
+    index = rolls.index(selected_length)
 
-        if rolls[i] >= remaining:
-            rolls[i] -= remaining
-            remaining = 0
-        else:
-            remaining -= rolls[i]
-            rolls[i] = 0
+    if rolls[index] >= need:
+        rolls[index] -= need
+        if rolls[index] == 0:
+            rolls.pop(index)
+        return True
 
-    rolls[:] = [r for r in rolls if r > 0]
-
-    return remaining == 0
+    return False
 
 
 # -------------------------
@@ -145,29 +141,45 @@ def sales():
 @app.route("/order", methods=["GET", "POST"])
 def order():
     if request.method == "POST":
+
+        # 商品選択だけの段階（ロール表示用）
+        if "product" in request.form and "quantity" not in request.form:
+            selected_product = request.form.get("product")
+            recipe = products[selected_product]
+            return render_template(
+                "order.html",
+                products=products,
+                selected_product=selected_product,
+                recipe=recipe,
+                stock_K=stock_K
+            )
+
+        # 製造処理
         product = request.form.get("product")
         quantity = int(request.form.get("quantity"))
-
         recipe = products[product]
 
-        # 切りしろ +5m を加えた必要量
+        # 必要量（切りしろ +5m）
         need = {}
         for k_code, base_amount in recipe.items():
             need[k_code] = base_amount * quantity + (5 if base_amount > 0 else 0)
 
-        # ① Kロールから切れるかチェック
+        # 選ばれたロールを使って切る
         for k_code, amount in need.items():
             if amount == 0:
                 continue
 
-            if not use_rolls(stock_K[k_code], amount):
-                return f"{k_code} のロールが不足しています"
+            selected_length = int(request.form.get(f"roll_{k_code}"))
 
-        # ② 完成品を増やす
+            if not cut_roll(stock_K[k_code], selected_length, amount):
+                return f"{k_code} の {selected_length}m ロールでは {amount}m 切れません"
+
+        # 完成品を増やす
         stock_Y[product] += quantity
-        return f"{product} を {quantity} 製造しました（ロールから切り出し）"
+        return f"{product} を {quantity} 製造しました（選択したロールから切り出し）"
 
-    return render_template("order.html")
+    # 初期表示
+    return render_template("order.html", products=products)
 
 
 # -------------------------
