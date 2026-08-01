@@ -147,12 +147,15 @@ def order():
 
     selected_product = request.form.get("product")
 
-    # 商品未選択 → 初期画面に戻す
+    # 商品未選択 → 初期画面
     if not selected_product:
         return render_template("order.html", products=products)
 
-    # 商品選択後、数量未入力 → ロール選択画面
-    if "quantity" not in request.form:
+    # 「受注する」ボタンが押されたかどうか
+    is_submit = "quantity" in request.form
+
+    # 商品コード変更だけの場合（ロール表示だけ）
+    if not is_submit:
         recipe = products[selected_product]
         return render_template(
             "order.html",
@@ -162,7 +165,7 @@ def order():
             stock_K=stock_K
         )
 
-    # ここから製造処理
+    # ここから製造処理（受注するボタンが押された）
     quantity = int(request.form.get("quantity"))
     recipe = products[selected_product]
 
