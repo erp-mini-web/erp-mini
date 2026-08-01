@@ -10,3 +10,12 @@ if __name__ == "__main__":
     import os
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port)
+
+
+from flask import Flask, render_template
+
+app1 = Flask(__name__)
+
+@app1.route("/")
+def menu():
+    return render_template("menu.html")
