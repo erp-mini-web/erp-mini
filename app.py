@@ -3,7 +3,7 @@ from flask import Flask, render_template, request
 app = Flask(__name__)
 
 # -------------------------
-# 商品レシピ（完成品Y → 必要な中間材のメートル数）
+# 商品レシピ
 # -------------------------
 products = {
     "Y001": {"K001": 30, "K002": 20, "K003": 0,  "K004": 0,  "K005": 0},
@@ -21,11 +21,11 @@ products = {
 # -------------------------
 # 在庫データ（ロール管理）
 # -------------------------
-stock_Y = {code: 0 for code in products.keys()}  # 完成品
+stock_Y = {code: 0 for code in products.keys()}
 
 stock_K = {
     "K001": [100, 80, 55],
-    "K002": [100, 60],   # ★120mは禁止 → 100mに修正済み
+    "K002": [100, 60],
     "K003": [100],
     "K004": [90, 30],
     "K005": [100]
@@ -41,28 +41,18 @@ sales_data = []
 
 
 # -------------------------
-# ロールを切る関数（選んだロールを使う）
+# ロールを切る関数
 # -------------------------
 def cut_roll(rolls, selected_length, need):
-    """
-    rolls: [100, 80, 55]
-    selected_length: ユーザーが選んだロールの長さ（例：80）
-    need: 必要メートル数（例：65）
-
-    戻り値:
-      True → 切れた
-      False → 切れない
-    """
-
     if selected_length not in rolls:
         return False
 
-    index = rolls.index(selected_length)
+    idx = rolls.index(selected_length)
 
-    if rolls[index] >= need:
-        rolls[index] -= need
-        if rolls[index] == 0:
-            rolls.pop(index)
+    if rolls[idx] >= need:
+        rolls[idx] -= need
+        if rolls[idx] == 0:
+            rolls.pop(idx)
         return True
 
     return False
@@ -81,16 +71,11 @@ def menu():
 # -------------------------
 @app.route("/stock")
 def stock():
-    return render_template(
-        "stock.html",
-        stock_Y=stock_Y,
-        stock_K=stock_K,
-        stock_H=stock_H
-    )
+    return render_template("stock.html", stock_Y=stock_Y, stock_K=stock_K, stock_H=stock_H)
 
 
 # -------------------------
-# 購入（原材料補充）
+# 購入
 # -------------------------
 @app.route("/purchase", methods=["GET", "POST"])
 def purchase():
@@ -108,7 +93,7 @@ def purchase():
 
 
 # -------------------------
-# 出荷（完成品Yを減らす）
+# 出荷
 # -------------------------
 @app.route("/shipment", methods=["GET", "POST"])
 def shipment():
@@ -118,9 +103,8 @@ def shipment():
 
         if stock_Y.get(product, 0) >= quantity:
             stock_Y[product] -= quantity
-
             sales_data.append({"product": product, "quantity": quantity})
-            return f"{product} を {quantity} 出荷しました（売上に反映）"
+            return f"{product} を {quantity} 出荷しました"
 
         return f"{product} の在庫が不足しています"
 
@@ -128,7 +112,7 @@ def shipment():
 
 
 # -------------------------
-# 売上画面
+# 売上
 # -------------------------
 @app.route("/sales")
 def sales():
@@ -136,7 +120,7 @@ def sales():
 
 
 # -------------------------
-# 受注（製造ロジック）
+# 受注（商品変更時のエラー完全修正）
 # -------------------------
 @app.route("/order", methods=["GET", "POST"])
 def order():
@@ -165,7 +149,7 @@ def order():
             stock_K=stock_K
         )
 
-    # ここから製造処理（受注するボタンが押された）
+    # ここから製造処理
     quantity = int(request.form.get("quantity"))
     recipe = products[selected_product]
 
