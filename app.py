@@ -205,17 +205,23 @@ def order():
     product_code = request.form.get("product_code")
     quantity_raw = request.form.get("quantity")
 
+    # -------------------------
     # 原材料表示ステップ
+    # -------------------------
     if action == "show_material":
         if not product_code or not quantity_raw:
             return "商品コードと数量を入力してください"
 
         quantity = int(quantity_raw)
+
+        # ★ 10個単位に丸める
+        manufacture_qty = ((quantity + 9) // 10) * 10
+
         recipe = products[product_code]
 
         need = {}
         for k_code, base_amount in recipe.items():
-            need[k_code] = base_amount * quantity + (5 if base_amount > 0 else 0)
+            need[k_code] = base_amount * manufacture_qty + (5 if base_amount > 0 else 0)
 
         return render_template(
             "order.html",
@@ -229,21 +235,28 @@ def order():
             shipping_address=shipping_address,
             product_code=product_code,
             quantity=quantity,
+            manufacture_qty=manufacture_qty,
             need=need,
             stock_K=stock_K,
             details=details
         )
 
+    # -------------------------
     # 明細追加ステップ
+    # -------------------------
     if action == "add_detail":
         quantity = int(quantity_raw)
+
+        # ★ 10個単位に丸める
+        manufacture_qty = ((quantity + 9) // 10) * 10
+
         recipe = products[product_code]
 
         need = {}
         roll_selection = {}
 
         for k_code, base_amount in recipe.items():
-            need[k_code] = base_amount * quantity + (5 if base_amount > 0 else 0)
+            need[k_code] = base_amount * manufacture_qty + (5 if base_amount > 0 else 0)
 
             if need[k_code] > 0:
                 roll_selection[k_code] = int(request.form.get(f"roll_{k_code}"))
@@ -251,6 +264,7 @@ def order():
         details.append({
             "product_code": product_code,
             "quantity": quantity,
+            "manufacture_qty": manufacture_qty,
             "need": need,
             "roll_selection": roll_selection,
             "status": "未着手"
@@ -269,10 +283,29 @@ def order():
             details=details
         )
 
+    # -------------------------
     # 受注確定ステップ
+    # -------------------------
     if action == "submit_order":
         order_no = next_order_no()
 
+        # ★ ロール在庫を減らす
+        for d in details:
+            for k_code, need_amount in d["need"].items():
+                if need_amount > 0:
+                    selected_roll = d["roll_selection"][k_code]
+                    rolls = stock_K[k_code]
+
+                    idx = rolls.index(selected_roll)
+                    rolls[idx] -= need_amount
+                    if rolls[idx] <= 0:
+                        rolls.pop(idx)
+
+            # ★ 製品在庫に余剰分を積み増し
+            surplus = d["manufacture_qty"] - d["quantity"]
+            stock_Y[d["product_code"]] += surplus
+
+        # ★ 受注データ保存
         order_data = {
             "order_no": order_no,
             "order_date": datetime.now().strftime("%Y-%m-%d"),
