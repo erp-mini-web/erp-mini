@@ -21,6 +21,55 @@ products = {
 }
 
 # -------------------------
+# お客様マスタ（A社〜F社）
+# -------------------------
+customers = {
+    "A社": {
+        "code": "C001",
+        "destinations": {
+            "北海道": "北海道札幌市中央区北1条西2丁目",
+            "東京": "東京都千代田区丸の内1丁目",
+            "大阪": "大阪府大阪市北区梅田1丁目"
+        }
+    },
+    "B社": {
+        "code": "C002",
+        "destinations": {
+            "名古屋": "愛知県名古屋市中村区名駅1丁目",
+            "岡山": "岡山県岡山市北区駅前町1丁目"
+        }
+    },
+    "C社": {
+        "code": "C003",
+        "destinations": {
+            "福岡": "福岡県福岡市博多区博多駅前1丁目",
+            "熊本": "熊本県熊本市中央区手取本町"
+        }
+    },
+    "D社": {
+        "code": "C004",
+        "destinations": {
+            "仙台": "宮城県仙台市青葉区中央1丁目",
+            "横浜": "神奈川県横浜市西区みなとみらい2丁目"
+        }
+    },
+    "E社": {
+        "code": "C005",
+        "destinations": {
+            "広島": "広島県広島市中区紙屋町1丁目",
+            "高松": "香川県高松市番町1丁目"
+        }
+    },
+    "F社": {
+        "code": "C006",
+        "destinations": {
+            "京都": "京都府京都市下京区四条通",
+            "神戸": "兵庫県神戸市中央区三宮町1丁目"
+        }
+    }
+}
+
+# -------------------------
 # 在庫データ（ロール管理）
 # -------------------------
 stock_Y = {code: 0 for code in products.keys()}
@@ -144,6 +193,7 @@ def order():
         return render_template(
             "order.html",
             products=products,
+            customers=customers,
             details=[]
         )
 
@@ -151,9 +201,15 @@ def order():
 
     # ヘッダー情報
     input_user = request.form.get("input_user")
-    customer_code = request.form.get("customer_code")
+    customer = request.form.get("customer")
+    destination = request.form.get("destination")
+
+    # 住所取得
+    shipping_address = ""
+    if customer and destination:
+        shipping_address = customers[customer]["destinations"][destination]
+
     delivery_date = request.form.get("delivery_date")
-    shipping_address = request.form.get("shipping_address")
     shipping_method = request.form.get("shipping_method")
 
     # 明細（フォームで保持）
@@ -179,11 +235,13 @@ def order():
         return render_template(
             "order.html",
             products=products,
+            customers=customers,
             input_user=input_user,
-            customer_code=customer_code,
+            customer=customer,
+            destination=destination,
             delivery_date=delivery_date,
-            shipping_address=shipping_address,
             shipping_method=shipping_method,
+            shipping_address=shipping_address,
             product_code=product_code,
             quantity=quantity,
             need=need,
@@ -216,11 +274,13 @@ def order():
         return render_template(
             "order.html",
             products=products,
+            customers=customers,
             input_user=input_user,
-            customer_code=customer_code,
+            customer=customer,
+            destination=destination,
             delivery_date=delivery_date,
-            shipping_address=shipping_address,
             shipping_method=shipping_method,
+            shipping_address=shipping_address,
             details=details
         )
 
@@ -232,9 +292,11 @@ def order():
             "order_no": order_no,
             "order_date": datetime.now().strftime("%Y-%m-%d"),
             "input_user": input_user,
-            "customer_code": customer_code,
-            "delivery_date": delivery_date,
+            "customer": customer,
+            "customer_code": customers[customer]["code"],
+            "destination": destination,
             "shipping_address": shipping_address,
+            "delivery_date": delivery_date,
             "shipping_method": shipping_method,
             "details": details
         }
