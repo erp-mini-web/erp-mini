@@ -2,9 +2,7 @@ from flask import Flask, render_template, request
 
 app = Flask(__name__)
 
-# -------------------------
 # 商品レシピ
-# -------------------------
 products = {
     "Y001": {"K001": 30, "K002": 20, "K003": 0,  "K004": 0,  "K005": 0},
     "Y002": {"K001": 10, "K002": 40, "K003": 10, "K004": 0,  "K005": 0},
@@ -18,9 +16,7 @@ products = {
     "Y010": {"K001": 30, "K002": 30, "K003": 30, "K004": 0,  "K005": 0}
 }
 
-# -------------------------
-# 在庫データ（ロール管理）
-# -------------------------
+# 在庫
 stock_Y = {code: 0 for code in products.keys()}
 
 stock_K = {
@@ -40,9 +36,6 @@ stock_H = {
 sales_data = []
 
 
-# -------------------------
-# ロールを切る関数
-# -------------------------
 def cut_roll(rolls, selected_length, need):
     if selected_length not in rolls:
         return False
@@ -58,25 +51,16 @@ def cut_roll(rolls, selected_length, need):
     return False
 
 
-# -------------------------
-# メニュー
-# -------------------------
 @app.route("/")
 def menu():
     return render_template("menu.html")
 
 
-# -------------------------
-# 在庫画面
-# -------------------------
 @app.route("/stock")
 def stock():
     return render_template("stock.html", stock_Y=stock_Y, stock_K=stock_K, stock_H=stock_H)
 
 
-# -------------------------
-# 購入
-# -------------------------
 @app.route("/purchase", methods=["GET", "POST"])
 def purchase():
     if request.method == "POST":
@@ -92,9 +76,6 @@ def purchase():
     return render_template("purchase.html")
 
 
-# -------------------------
-# 出荷
-# -------------------------
 @app.route("/shipment", methods=["GET", "POST"])
 def shipment():
     if request.method == "POST":
@@ -111,17 +92,11 @@ def shipment():
     return render_template("shipment.html", stock_Y=stock_Y)
 
 
-# -------------------------
-# 売上
-# -------------------------
 @app.route("/sales")
 def sales():
     return render_template("sales.html", sales_data=sales_data)
 
 
-# -------------------------
-# 受注（安定版ロジック）
-# -------------------------
 @app.route("/order", methods=["GET", "POST"])
 def order():
 
@@ -129,18 +104,17 @@ def order():
     if request.method == "GET":
         return render_template("order.html", products=products)
 
+    action = request.form.get("action")
     selected_product = request.form.get("product")
 
     # 商品未選択 → 初期画面
     if not selected_product:
         return render_template("order.html", products=products)
 
-    # submit が押されたかどうか
-    is_submit = ("submit" in request.form)
+    recipe = products[selected_product]
 
-    # submit が押されていない → 商品コードを選んだだけ（ロール表示ステップ）
-    if not is_submit:
-        recipe = products[selected_product]
+    # 原材料を表示ステップ
+    if action == "show":
         return render_template(
             "order.html",
             products=products,
@@ -149,9 +123,8 @@ def order():
             stock_K=stock_K
         )
 
-    # submit が押された → 製造ステップ
+    # ここから製造ステップ（受注する）
     quantity = int(request.form.get("quantity"))
-    recipe = products[selected_product]
 
     # 必要量（切りしろ +5m）
     need = {}
@@ -172,9 +145,6 @@ def order():
     return f"{selected_product} を {quantity} 製造しました（選択したロールから切り出し）"
 
 
-# -------------------------
-# Render起動
-# -------------------------
 if __name__ == "__main__":
     import os
     port = int(os.environ.get("PORT", 5000))
