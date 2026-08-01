@@ -1,4 +1,6 @@
 from flask import Flask, render_template, request
+import json
+from datetime import datetime
 
 app = Flask(__name__)
 
@@ -38,6 +40,18 @@ stock_H = {
 }
 
 sales_data = []
+
+# -------------------------
+# 受注データ
+# -------------------------
+orders = []
+order_counter = 1
+
+def next_order_no():
+    global order_counter
+    order_no = f"T{order_counter:05d}"
+    order_counter += 1
+    return order_no
 
 
 # -------------------------
@@ -120,59 +134,116 @@ def sales():
 
 
 # -------------------------
-# 受注（安定版ロジック）
+# 受注（A-1方式）
 # -------------------------
 @app.route("/order", methods=["GET", "POST"])
 def order():
 
     # 初期表示
     if request.method == "GET":
-        return render_template("order.html", products=products)
-
-    action = request.form.get("action")
-    selected_product = request.form.get("product")
-    quantity_raw = request.form.get("quantity")
-
-    # 商品未選択 → 初期画面
-    if not selected_product:
-        return render_template("order.html", products=products)
-
-    # 数量未入力 → 原材料を表示できない
-    if not quantity_raw:
-        return render_template("order.html", products=products, selected_product=selected_product)
-
-    quantity = int(quantity_raw)
-    recipe = products[selected_product]
-
-    # 必要量計算（切りしろ +5m）
-    need = {}
-    for k_code, base_amount in recipe.items():
-        need[k_code] = base_amount * quantity + (5 if base_amount > 0 else 0)
-
-    # 原材料を表示ステップ
-    if action == "show":
         return render_template(
             "order.html",
             products=products,
-            selected_product=selected_product,
-            quantity=quantity,
-            recipe=recipe,
-            need=need,
-            stock_K=stock_K
+            details=[]
         )
 
-    # ここから製造ステップ（受注する）
-    for k_code, amount in need.items():
-        if amount == 0:
-            continue
+    action = request.form.get("action")
 
-        selected_length = int(request.form.get(f"roll_{k_code}"))
+    # ヘッダー情報
+    input_user = request.form.get("input_user")
+    customer_code = request.form.get("customer_code")
+    delivery_date = request.form.get("delivery_date")
+    shipping_address = request.form.get("shipping_address")
+    shipping_method = request.form.get("shipping_method")
 
-        if not cut_roll(stock_K[k_code], selected_length, amount):
-            return f"{k_code} の {selected_length}m ロールでは {amount}m 切れません"
+    # 明細（フォームで保持）
+    details_raw = request.form.get("details_data")
+    details = json.loads(details_raw) if details_raw else []
 
-    stock_Y[selected_product] += quantity
-    return f"{selected_product} を {quantity} 製造しました（選択したロールから切り出し）"
+    # 商品追加フォーム
+    product_code = request.form.get("product_code")
+    quantity_raw = request.form.get("quantity")
+
+    # 原材料表示ステップ
+    if action == "show_material":
+        if not product_code or not quantity_raw:
+            return "商品コードと数量を入力してください"
+
+        quantity = int(quantity_raw)
+        recipe = products[product_code]
+
+        need = {}
+        for k_code, base_amount in recipe.items():
+            need[k_code] = base_amount * quantity + (5 if base_amount > 0 else 0)
+
+        return render_template(
+            "order.html",
+            products=products,
+            input_user=input_user,
+            customer_code=customer_code,
+            delivery_date=delivery_date,
+            shipping_address=shipping_address,
+            shipping_method=shipping_method,
+            product_code=product_code,
+            quantity=quantity,
+            need=need,
+            stock_K=stock_K,
+            details=details
+        )
+
+    # 明細追加ステップ
+    if action == "add_detail":
+        quantity = int(quantity_raw)
+        recipe = products[product_code]
+
+        need = {}
+        roll_selection = {}
+
+        for k_code, base_amount in recipe.items():
+            need[k_code] = base_amount * quantity + (5 if base_amount > 0 else 0)
+
+            if need[k_code] > 0:
+                roll_selection[k_code] = int(request.form.get(f"roll_{k_code}"))
+
+        details.append({
+            "product_code": product_code,
+            "quantity": quantity,
+            "need": need,
+            "roll_selection": roll_selection,
+            "status": "未着手"
+        })
+
+        return render_template(
+            "order.html",
+            products=products,
+            input_user=input_user,
+            customer_code=customer_code,
+            delivery_date=delivery_date,
+            shipping_address=shipping_address,
+            shipping_method=shipping_method,
+            details=details
+        )
+
+    # 受注確定ステップ
+    if action == "submit_order":
+        order_no = next_order_no()
+
+        order_data = {
+            "order_no": order_no,
+            "order_date": datetime.now().strftime("%Y-%m-%d"),
+            "input_user": input_user,
+            "customer_code": customer_code,
+            "delivery_date": delivery_date,
+            "shipping_address": shipping_address,
+            "shipping_method": shipping_method,
+            "details": details
+        }
+
+        orders.append(order_data)
+
+        return f"受注 {order_no} を登録しました（明細数：{len(details)}）"
+
+    return "不明な操作です"
 
 
 # -------------------------
