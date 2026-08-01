@@ -5,19 +5,19 @@ from datetime import datetime
 app = Flask(__name__)
 
 # -------------------------
-# 商品レシピ
+# 商品レシピ（★10個あたりの必要量）
 # -------------------------
 products = {
-    "Y001": {"K001": 30, "K002": 20, "K003": 0,  "K004": 0,  "K005": 0},
-    "Y002": {"K001": 10, "K002": 40, "K003": 10, "K004": 0,  "K005": 0},
-    "Y003": {"K001": 0,  "K002": 20, "K003": 30, "K004": 10, "K005": 0},
-    "Y004": {"K001": 50, "K002": 0,  "K003": 0,  "K004": 20, "K005": 10},
+    "Y001": {"K001": 30, "K002": 20},
+    "Y002": {"K001": 10, "K002": 40, "K003": 10},
+    "Y003": {"K002": 20, "K003": 30, "K004": 10},
+    "Y004": {"K001": 50, "K004": 20, "K005": 10},
     "Y005": {"K001": 10, "K002": 10, "K003": 10, "K004": 10, "K005": 10},
-    "Y006": {"K001": 60, "K002": 20, "K003": 0,  "K004": 0,  "K005": 0},
-    "Y007": {"K001": 25, "K002": 25, "K003": 25, "K004": 0,  "K005": 0},
-    "Y008": {"K001": 35, "K002": 15, "K003": 0,  "K004": 20, "K005": 0},
-    "Y009": {"K001": 45, "K002": 5,  "K003": 10, "K004": 10, "K005": 10},
-    "Y010": {"K001": 30, "K002": 30, "K003": 30, "K004": 0,  "K005": 0}
+    "Y006": {"K001": 60, "K002": 20},
+    "Y007": {"K001": 25, "K002": 25, "K003": 25},
+    "Y008": {"K001": 35, "K002": 15, "K004": 20},
+    "Y009": {"K001": 45, "K002": 5, "K003": 10, "K004": 10, "K005": 10},
+    "Y010": {"K001": 30, "K002": 30, "K003": 30}
 }
 
 # -------------------------
@@ -82,11 +82,7 @@ stock_K = {
     "K005": [100]
 }
 
-stock_H = {
-    "H001": 100,
-    "H002": 100,
-    "H003": 100
-}
+stock_H = {"H001": 100, "H002": 100, "H003": 100}
 
 sales_data = []
 
@@ -117,24 +113,6 @@ def menu():
 @app.route("/stock")
 def stock():
     return render_template("stock.html", stock_Y=stock_Y, stock_K=stock_K, stock_H=stock_H)
-
-
-# -------------------------
-# 購入
-# -------------------------
-@app.route("/purchase", methods=["GET", "POST"])
-def purchase():
-    if request.method == "POST":
-        material = request.form.get("material")
-        quantity = int(request.form.get("quantity"))
-
-        if material in stock_H:
-            stock_H[material] += quantity
-            return f"{material} を {quantity} 追加しました"
-
-        return "不明な原材料コードです"
-
-    return render_template("purchase.html")
 
 
 # -------------------------
@@ -170,7 +148,6 @@ def sales():
 @app.route("/order", methods=["GET", "POST"])
 def order():
 
-    # 初期表示
     if request.method == "GET":
         return render_template(
             "order.html",
@@ -192,36 +169,31 @@ def order():
     delivery_date = request.form.get("delivery_date")
     shipping_method = request.form.get("shipping_method")
 
-    # 住所取得
     shipping_address = ""
     if customer and destination:
         shipping_address = customers[customer]["destinations"][destination]
 
-    # 明細（フォームで保持）
     details_raw = request.form.get("details_data")
     details = json.loads(details_raw) if details_raw else []
 
-    # 商品追加フォーム
     product_code = request.form.get("product_code")
     quantity_raw = request.form.get("quantity")
 
     # -------------------------
-    # 原材料表示ステップ
+    # 原材料表示
     # -------------------------
     if action == "show_material":
-        if not product_code or not quantity_raw:
-            return "商品コードと数量を入力してください"
-
         quantity = int(quantity_raw)
 
         # ★ 10個単位に丸める
         manufacture_qty = ((quantity + 9) // 10) * 10
+        lot_count = manufacture_qty // 10
 
         recipe = products[product_code]
 
         need = {}
         for k_code, base_amount in recipe.items():
-            need[k_code] = base_amount * manufacture_qty + (5 if base_amount > 0 else 0)
+            need[k_code] = base_amount * lot_count  # ★10個あたりのレシピ
 
         return render_template(
             "order.html",
@@ -242,13 +214,13 @@ def order():
         )
 
     # -------------------------
-    # 明細追加ステップ
+    # 明細追加
     # -------------------------
     if action == "add_detail":
         quantity = int(quantity_raw)
 
-        # ★ 10個単位に丸める
         manufacture_qty = ((quantity + 9) // 10) * 10
+        lot_count = manufacture_qty // 10
 
         recipe = products[product_code]
 
@@ -256,10 +228,8 @@ def order():
         roll_selection = {}
 
         for k_code, base_amount in recipe.items():
-            need[k_code] = base_amount * manufacture_qty + (5 if base_amount > 0 else 0)
-
-            if need[k_code] > 0:
-                roll_selection[k_code] = int(request.form.get(f"roll_{k_code}"))
+            need[k_code] = base_amount * lot_count
+            roll_selection[k_code] = int(request.form.get(f"roll_{k_code}"))
 
         details.append({
             "product_code": product_code,
@@ -284,7 +254,7 @@ def order():
         )
 
     # -------------------------
-    # 受注確定ステップ
+    # 受注確定
     # -------------------------
     if action == "submit_order":
         order_no = next_order_no()
@@ -292,20 +262,18 @@ def order():
         # ★ ロール在庫を減らす
         for d in details:
             for k_code, need_amount in d["need"].items():
-                if need_amount > 0:
-                    selected_roll = d["roll_selection"][k_code]
-                    rolls = stock_K[k_code]
+                selected_roll = d["roll_selection"][k_code]
+                rolls = stock_K[k_code]
 
-                    idx = rolls.index(selected_roll)
-                    rolls[idx] -= need_amount
-                    if rolls[idx] <= 0:
-                        rolls.pop(idx)
+                idx = rolls.index(selected_roll)
+                rolls[idx] -= need_amount
+                if rolls[idx] <= 0:
+                    rolls.pop(idx)
 
             # ★ 製品在庫に余剰分を積み増し
             surplus = d["manufacture_qty"] - d["quantity"]
             stock_Y[d["product_code"]] += surplus
 
-        # ★ 受注データ保存
         order_data = {
             "order_no": order_no,
             "order_date": datetime.now().strftime("%Y-%m-%d"),
