@@ -4,10 +4,14 @@
   <tr>
     <th>受注番号</th>
     <th>受注日</th>
-    <th>お客様</th>
-    <th>発送先</th>
-    <th>配送方法</th>
     <th>入力者</th>
+    <th>お客様</th>
+    <th>お客様コード</th>
+    <th>発送先</th>
+    <th>住所</th>
+    <th>納期</th>
+    <th>配送方法</th>
+    <th>数量合計</th>
     <th>明細数</th>
   </tr>
 
@@ -15,11 +19,21 @@
     <tr>
       <td>{{ o.order_no }}</td>
       <td>{{ o.order_date }}</td>
-      <td>{{ o.customer }}</td>
-      <td>{{ o.destination }}</td>
-      <td>{{ o.shipping_method }}</td>
       <td>{{ o.input_user }}</td>
-      <td>{{ o.details|length }}</td>
+      <td>{{ o.customer }}</td>
+      <td>{{ o.customer_code }}</td>
+      <td>{{ o.destination }}</td>
+      <td>{{ o.shipping_address }}</td>
+      <td>{{ o.delivery_date }}</td>
+      <td>{{ o.shipping_method }}</td>
+
+      <!-- 明細の数量合計 -->
+      <td>
+        {{ o.details | map(attribute='quantity') | sum }}
+      </td>
+
+      <!-- 明細数 -->
+      <td>{{ o.details | length }}</td>
     </tr>
   {% endfor %}
 </table>
