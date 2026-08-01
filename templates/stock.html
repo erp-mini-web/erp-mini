@@ -1,23 +1,31 @@
 <h2>在庫一覧</h2>
 
-<h3>完成品 Y</h3>
+<h3>完成品 Y（個数）</h3>
 <ul>
   {% for code, qty in stock_Y.items() %}
-    <li>{{ code }} : {{ qty }}</li>
+    <li>{{ code }} : {{ qty }} 個</li>
   {% endfor %}
 </ul>
 
-<h3>中間材 K</h3>
+<h3>中間材 K（ロール一覧）</h3>
 <ul>
-  {% for code, qty in stock_K.items() %}
-    <li>{{ code }} : {{ qty }}</li>
+  {% for code, rolls in stock_K.items() %}
+    <li>{{ code }} :
+      {% if rolls %}
+        {% for r in rolls %}
+          {{ r }}m{% if not loop.last %}, {% endif %}
+        {% endfor %}
+      {% else %}
+        在庫なし
+      {% endif %}
+    </li>
   {% endfor %}
 </ul>
 
-<h3>原材料 H</h3>
+<h3>原材料 H（個数）</h3>
 <ul>
   {% for code, qty in stock_H.items() %}
-    <li>{{ code }} : {{ qty }}</li>
+    <li>{{ code }} : {{ qty }} 個</li>
   {% endfor %}
 </ul>
 
