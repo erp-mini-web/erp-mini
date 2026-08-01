@@ -1,10 +1,17 @@
 <h2>受注画面</h2>
+
 <form method="post">
+  <label>商品コード：</label>
   <select name="product">
-    {% for code in ["Y001","Y002","Y003","Y004","Y005"] %}
+    {% for code in ["Y001","Y002","Y003","Y004","Y005","Y006","Y007","Y008","Y009","Y010"] %}
       <option value="{{ code }}">{{ code }}</option>
     {% endfor %}
   </select>
-  <input type="number" name="quantity" placeholder="個数">
-  <button type="submit">送信</button>
+
+  <label>数量：</label>
+  <input type="number" name="quantity" min="1">
+
+  <button type="submit">受注する</button>
 </form>
+
+<a href="/">メニューに戻る</a>
