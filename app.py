@@ -70,7 +70,7 @@ customers = {
 }
 
 # -------------------------
-# 在庫データ（ロール管理）
+# 在庫データ
 # -------------------------
 stock_Y = {code: 0 for code in products.keys()}
 
@@ -101,24 +101,6 @@ def next_order_no():
     order_no = f"T{order_counter:05d}"
     order_counter += 1
     return order_no
-
-
-# -------------------------
-# ロールを切る関数
-# -------------------------
-def cut_roll(rolls, selected_length, need):
-    if selected_length not in rolls:
-        return False
-
-    idx = rolls.index(selected_length)
-
-    if rolls[idx] >= need:
-        rolls[idx] -= need
-        if rolls[idx] == 0:
-            rolls.pop(idx)
-        return True
-
-    return False
 
 
 # -------------------------
@@ -194,7 +176,11 @@ def order():
             "order.html",
             products=products,
             customers=customers,
-            details=[]
+            details=[],
+            customer=None,
+            destination=None,
+            delivery_date=None,
+            shipping_method=None
         )
 
     action = request.form.get("action")
@@ -203,14 +189,13 @@ def order():
     input_user = request.form.get("input_user")
     customer = request.form.get("customer")
     destination = request.form.get("destination")
+    delivery_date = request.form.get("delivery_date")
+    shipping_method = request.form.get("shipping_method")
 
     # 住所取得
     shipping_address = ""
     if customer and destination:
         shipping_address = customers[customer]["destinations"][destination]
-
-    delivery_date = request.form.get("delivery_date")
-    shipping_method = request.form.get("shipping_method")
 
     # 明細（フォームで保持）
     details_raw = request.form.get("details_data")
