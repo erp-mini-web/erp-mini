@@ -12,14 +12,21 @@
     {% endfor %}
   </select>
 
+  <br><br>
+
+  <label>数量：</label>
+  <input type="number" name="quantity" min="1" value="{{ quantity or '' }}">
+
+  <br><br>
+
   <button type="submit" name="action" value="show">原材料を表示</button>
 
-  {% if selected_product %}
+  {% if recipe %}
     <h3>必要な中間材ロールを選択</h3>
 
     {% for k_code, rolls in stock_K.items() %}
-      {% if recipe[k_code] > 0 %}
-        <h4>{{ k_code }}（必要量：{{ recipe[k_code] }}m + 切りしろ5m）</h4>
+      {% if need[k_code] > 0 %}
+        <h4>{{ k_code }}（必要量：{{ need[k_code] }}m）</h4>
 
         {% for r in rolls %}
           <label>
@@ -31,9 +38,7 @@
       {% endif %}
     {% endfor %}
 
-    <label>数量：</label>
-    <input type="number" name="quantity" min="1" value="{{ quantity or 1 }}">
-
+    <br>
     <button type="submit" name="action" value="submit">受注する</button>
   {% endif %}
 
