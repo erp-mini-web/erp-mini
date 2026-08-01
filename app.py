@@ -3,36 +3,77 @@ from flask import Flask, render_template, request
 app = Flask(__name__)
 
 # -------------------------
-# 在庫データ（まずはメモリで持つ）
+# 商品レシピ（完成品Y → 必要な中間材のメートル数）
 # -------------------------
-
-# 完成品 Y
-stock_Y = {
-    "Y001": 0,
-    "Y002": 5,
-    "Y003": 10,
-    # 必要なら Y030 まで追加
+products = {
+    "Y001": {"K001": 30, "K002": 20, "K003": 0,  "K004": 0,  "K005": 0},
+    "Y002": {"K001": 10, "K002": 40, "K003": 10, "K004": 0,  "K005": 0},
+    "Y003": {"K001": 0,  "K002": 20, "K003": 30, "K004": 10, "K005": 0},
+    "Y004": {"K001": 50, "K002": 0,  "K003": 0,  "K004": 20, "K005": 10},
+    "Y005": {"K001": 10, "K002": 10, "K003": 10, "K004": 10, "K005": 10},
+    "Y006": {"K001": 60, "K002": 20, "K003": 0,  "K004": 0,  "K005": 0},
+    "Y007": {"K001": 25, "K002": 25, "K003": 25, "K004": 0,  "K005": 0},
+    "Y008": {"K001": 35, "K002": 15, "K003": 0,  "K004": 20, "K005": 0},
+    "Y009": {"K001": 45, "K002": 5,  "K003": 10, "K004": 10, "K005": 10},
+    "Y010": {"K001": 30, "K002": 30, "K003": 30, "K004": 0,  "K005": 0}
 }
 
-# 中間材 K
+# -------------------------
+# 在庫データ（ロール管理）
+# -------------------------
+stock_Y = {code: 0 for code in products.keys()}  # 完成品
+
 stock_K = {
-    "K001": 3,
-    "K002": 0
+    "K001": [100, 80, 55],
+    "K002": [120, 60],
+    "K003": [100],
+    "K004": [90, 30],
+    "K005": [100]
 }
 
-# 原材料 H
 stock_H = {
-    "H001": 10,
-    "H002": 0,
-    "H003": 5
+    "H001": 100,
+    "H002": 100,
+    "H003": 100
 }
 
-# 売上データ（後で使う）
 sales_data = []
 
 
 # -------------------------
-# メニュー画面
+# ロールを切る関数
+# -------------------------
+def use_rolls(rolls, need):
+    """
+    rolls: [100, 80, 55] のようなロール一覧
+    need: 必要メートル数（例：65）
+
+    戻り値:
+      True  → ロールから切れた
+      False → ロールが足りない
+    """
+
+    rolls.sort(reverse=True)  # 長い順に並べる
+    remaining = need
+
+    for i in range(len(rolls)):
+        if remaining <= 0:
+            break
+
+        if rolls[i] >= remaining:
+            rolls[i] -= remaining
+            remaining = 0
+        else:
+            remaining -= rolls[i]
+            rolls[i] = 0
+
+    rolls[:] = [r for r in rolls if r > 0]
+
+    return remaining == 0
+
+
+# -------------------------
+# メニュー
 # -------------------------
 @app.route("/")
 def menu():
@@ -53,7 +94,7 @@ def stock():
 
 
 # -------------------------
-# 購入画面
+# 購入（原材料補充）
 # -------------------------
 @app.route("/purchase", methods=["GET", "POST"])
 def purchase():
@@ -71,7 +112,7 @@ def purchase():
 
 
 # -------------------------
-# 出荷画面（完成品Yを出荷）
+# 出荷（完成品Yを減らす）
 # -------------------------
 @app.route("/shipment", methods=["GET", "POST"])
 def shipment():
@@ -79,16 +120,10 @@ def shipment():
         product = request.form.get("product")
         quantity = int(request.form.get("quantity"))
 
-        # 完成品Yの在庫チェック
         if stock_Y.get(product, 0) >= quantity:
             stock_Y[product] -= quantity
 
-            # 売上データに記録
-            sales_data.append({
-                "product": product,
-                "quantity": quantity
-            })
-
+            sales_data.append({"product": product, "quantity": quantity})
             return f"{product} を {quantity} 出荷しました（売上に反映）"
 
         return f"{product} の在庫が不足しています"
@@ -105,7 +140,7 @@ def sales():
 
 
 # -------------------------
-# 受注画面（製造ロジック）
+# 受注（製造ロジック）
 # -------------------------
 @app.route("/order", methods=["GET", "POST"])
 def order():
@@ -113,49 +148,30 @@ def order():
         product = request.form.get("product")
         quantity = int(request.form.get("quantity"))
 
-        # ① 完成品Yの在庫確認
-        if stock_Y.get(product, 0) >= quantity:
-            stock_Y[product] -= quantity
-            return f"{product} を {quantity} 個出荷できます（Y在庫から）"
+        recipe = products[product]
 
-        # ② 中間材Kの在庫確認（仮に1:1で必要とする）
-        need_K1 = quantity
-        need_K2 = quantity
+        # 切りしろ +5m を加えた必要量
+        need = {}
+        for k_code, base_amount in recipe.items():
+            need[k_code] = base_amount * quantity + (5 if base_amount > 0 else 0)
 
-        if stock_K["K001"] >= need_K1 and stock_K["K002"] >= need_K2:
-            stock_K["K001"] -= need_K1
-            stock_K["K002"] -= need_K2
-            return f"{product} を {quantity} 個製造できます（K在庫から）"
+        # ① Kロールから切れるかチェック
+        for k_code, amount in need.items():
+            if amount == 0:
+                continue
 
-        # ③ 原材料Hの在庫確認（仮に1:1で必要とする）
-        need_H1 = quantity
-        need_H2 = quantity
-        need_H3 = quantity
+            if not use_rolls(stock_K[k_code], amount):
+                return f"{k_code} のロールが不足しています"
 
-        lack = []
-        if stock_H["H001"] < need_H1:
-            lack.append("H001")
-        if stock_H["H002"] < need_H2:
-            lack.append("H002")
-        if stock_H["H003"] < need_H3:
-            lack.append("H003")
-
-        # 足りない原材料がある場合 → 購入が必要
-        if lack:
-            return f"{product} を作るために {', '.join(lack)} を購入する必要があります"
-
-        # 原材料がある場合 → 消費して製造
-        stock_H["H001"] -= need_H1
-        stock_H["H002"] -= need_H2
-        stock_H["H003"] -= need_H3
-
-        return f"{product} を {quantity} 個製造できます（H在庫から）"
+        # ② 完成品を増やす
+        stock_Y[product] += quantity
+        return f"{product} を {quantity} 製造しました（ロールから切り出し）"
 
     return render_template("order.html")
 
 
 # -------------------------
-# Render用の起動設定
+# Render起動
 # -------------------------
 if __name__ == "__main__":
     import os
