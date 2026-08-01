@@ -4,7 +4,7 @@ app = Flask(__name__)
 
 @app.route("/")
 def home():
-    return "ERP-mini is running!"
+    return "ERP-miniが動いている!"
 
 if __name__ == "__main__":
     import os
