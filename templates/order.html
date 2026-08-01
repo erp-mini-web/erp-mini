@@ -3,7 +3,7 @@
 <form method="post">
 
   <label>商品コード：</label>
-  <select name="product" onchange="this.form.submit()">
+  <select name="product">
     <option value="">選択して</option>
     {% for code in products %}
       <option value="{{ code }}" {% if selected_product == code %}selected{% endif %}>
@@ -11,6 +11,8 @@
       </option>
     {% endfor %}
   </select>
+
+  <button type="submit" name="action" value="show">原材料を表示</button>
 
   {% if selected_product %}
     <h3>必要な中間材ロールを選択</h3>
@@ -31,9 +33,10 @@
 
     <label>数量：</label>
     <input type="number" name="quantity" min="1" value="{{ quantity or 1 }}">
+
+    <button type="submit" name="action" value="submit">受注する</button>
   {% endif %}
 
-  <button type="submit" name="submit">受注する</button>
 </form>
 
 <a href="/">メニューに戻る</a>
