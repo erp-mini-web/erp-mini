@@ -2,7 +2,7 @@
 
 <form method="post">
 
-  <!-- hidden: 明細データ保持 -->
+  <!-- 明細データ保持 -->
   <input type="hidden" name="details_data" value='{{ details|tojson }}'>
 
   <h3>受注ヘッダー</h3>
@@ -14,6 +14,7 @@
   </select>
   <br><br>
 
+  <!-- お客様コード -->
   <label>お客様コード：</label>
   <select name="customer">
     <option value="">選択して</option>
@@ -25,6 +26,7 @@
   </select>
   <br><br>
 
+  <!-- 発送先（customer が選ばれたら表示） -->
   {% if customer %}
     <label>発送先：</label>
     <select name="destination">
@@ -35,12 +37,28 @@
       {% endfor %}
     </select>
     <br><br>
-
-    {% if destination %}
-      <label>住所：</label>
-      <p>{{ customers[customer]["destinations"][destination] }}</p>
-    {% endif %}
   {% endif %}
+
+  <!-- 住所（customer & destination が選ばれたら表示） -->
+  {% if customer and destination %}
+    <label>住所：</label>
+    <p>{{ customers[customer]["destinations"][destination] }}</p>
+    <br>
+  {% endif %}
+
+  <!-- 納期（復活済み） -->
+  <label>納期：</label>
+  <input type="date" name="delivery_date" value="{{ delivery_date or '' }}">
+  <br><br>
+
+  <!-- 配送方法 -->
+  <label>配送方法：</label>
+  <select name="shipping_method">
+    <option value="宅配便" {% if shipping_method == "宅配便" %}selected{% endif %}>宅配便</option>
+    <option value="チャーター便" {% if shipping_method == "チャーター便" %}selected{% endif %}>チャーター便</option>
+    <option value="自社便" {% if shipping_method == "自社便" %}selected{% endif %}>自社便</option>
+  </select>
+  <br><br>
 
   <h3>商品追加</h3>
 
