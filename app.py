@@ -309,6 +309,14 @@ def order():
 
 
 # -------------------------
+# 受注一覧
+# -------------------------
+@app.route("/order_list")
+def order_list():
+    return render_template("order_list.html", orders=orders)
+
+
+# -------------------------
 # Render起動
 # -------------------------
 if __name__ == "__main__":
