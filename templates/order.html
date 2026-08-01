@@ -1,0 +1,10 @@
+<h2>受注画面</h2>
+<form method="post">
+  <select name="product">
+    {% for code in ["Y001","Y002","Y003","Y004","Y005"] %}
+      <option value="{{ code }}">{{ code }}</option>
+    {% endfor %}
+  </select>
+  <input type="number" name="quantity" placeholder="個数">
+  <button type="submit">送信</button>
+</form>
