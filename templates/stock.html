@@ -1,0 +1,24 @@
+<h2>在庫一覧</h2>
+
+<h3>完成品 Y</h3>
+<ul>
+  {% for code, qty in stock_Y.items() %}
+    <li>{{ code }} : {{ qty }}</li>
+  {% endfor %}
+</ul>
+
+<h3>中間材 K</h3>
+<ul>
+  {% for code, qty in stock_K.items() %}
+    <li>{{ code }} : {{ qty }}</li>
+  {% endfor %}
+</ul>
+
+<h3>原材料 H</h3>
+<ul>
+  {% for code, qty in stock_H.items() %}
+    <li>{{ code }} : {{ qty }}</li>
+  {% endfor %}
+</ul>
+
+<a href="/">メニューに戻る</a>
