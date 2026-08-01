@@ -35,6 +35,18 @@ def menu():
     return render_template("menu.html")
 
 # -------------------------
+# 在庫画面
+# -------------------------
+@app.route("/stock")
+def stock():
+    return render_template(
+        "stock.html",
+        stock_Y=stock_Y,
+        stock_K=stock_K,
+        stock_H=stock_H
+    )
+
+# -------------------------
 # 受注画面
 # -------------------------
 @app.route("/order", methods=["GET", "POST"])
