@@ -136,7 +136,7 @@ def order():
         return render_template("order.html", products=products)
 
     # 「受注する」ボタンが押されたかどうか
-    is_submit = "quantity" in request.form
+    is_submit = ("submit" in request.form)
 
     # 商品コード変更だけの場合（ロール表示だけ）
     if not is_submit:
@@ -149,7 +149,7 @@ def order():
             stock_K=stock_K
         )
 
-    # ここから製造処理
+    # ここから製造処理（受注するボタンが押された）
     quantity = int(request.form.get("quantity"))
     recipe = products[selected_product]
 
