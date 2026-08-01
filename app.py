@@ -47,6 +47,37 @@ def stock():
     )
 
 # -------------------------
+# 購入画面
+# -------------------------
+@app.route("/purchase", methods=["GET", "POST"])
+def purchase():
+    if request.method == "POST":
+        material = request.form.get("material")
+        quantity = int(request.form.get("quantity"))
+
+        if material in stock_H:
+            stock_H[material] += quantity
+            return f"{material} を {quantity} 追加しました"
+
+        return "不明な原材料コードです"
+
+    return render_template("purchase.html")
+
+# -------------------------
+# 出荷画面（まだロジックなし）
+# -------------------------
+@app.route("/shipment")
+def shipment():
+    return render_template("shipment.html")
+
+# -------------------------
+# 売上画面（まだロジックなし）
+# -------------------------
+@app.route("/sales")
+def sales():
+    return render_template("sales.html")
+
+# -------------------------
 # 受注画面
 # -------------------------
 @app.route("/order", methods=["GET", "POST"])
