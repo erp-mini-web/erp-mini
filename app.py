@@ -27,12 +27,17 @@ stock_H = {
     "H003": 5
 }
 
+# 売上データ（後で使う）
+sales_data = []
+
+
 # -------------------------
 # メニュー画面
 # -------------------------
 @app.route("/")
 def menu():
     return render_template("menu.html")
+
 
 # -------------------------
 # 在庫画面
@@ -45,6 +50,7 @@ def stock():
         stock_K=stock_K,
         stock_H=stock_H
     )
+
 
 # -------------------------
 # 購入画面
@@ -63,22 +69,43 @@ def purchase():
 
     return render_template("purchase.html")
 
-# -------------------------
-# 出荷画面（まだロジックなし）
-# -------------------------
-@app.route("/shipment")
-def shipment():
-    return render_template("shipment.html")
 
 # -------------------------
-# 売上画面（まだロジックなし）
+# 出荷画面（完成品Yを出荷）
+# -------------------------
+@app.route("/shipment", methods=["GET", "POST"])
+def shipment():
+    if request.method == "POST":
+        product = request.form.get("product")
+        quantity = int(request.form.get("quantity"))
+
+        # 完成品Yの在庫チェック
+        if stock_Y.get(product, 0) >= quantity:
+            stock_Y[product] -= quantity
+
+            # 売上データに記録
+            sales_data.append({
+                "product": product,
+                "quantity": quantity
+            })
+
+            return f"{product} を {quantity} 出荷しました（売上に反映）"
+
+        return f"{product} の在庫が不足しています"
+
+    return render_template("shipment.html", stock_Y=stock_Y)
+
+
+# -------------------------
+# 売上画面
 # -------------------------
 @app.route("/sales")
 def sales():
-    return render_template("sales.html")
+    return render_template("sales.html", sales_data=sales_data)
+
 
 # -------------------------
-# 受注画面
+# 受注画面（製造ロジック）
 # -------------------------
 @app.route("/order", methods=["GET", "POST"])
 def order():
@@ -125,6 +152,7 @@ def order():
         return f"{product} を {quantity} 個製造できます（H在庫から）"
 
     return render_template("order.html")
+
 
 # -------------------------
 # Render用の起動設定
