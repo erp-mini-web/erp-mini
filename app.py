@@ -1,3 +1,21 @@
+# 在庫データ（まずはメモリで持つ）
+stock_Y = {
+    "Y001": 0,
+    "Y002": 5,
+    "Y003": 10,
+    # … Y030まで追加
+}
+
+stock_K = {
+    "K001": 3,
+    "K002": 0
+}
+
+stock_H = {
+    "H001": 10,
+    "H002": 0,
+    "H003": 5
+}
 from flask import Flask, render_template, request
 
 app = Flask(__name__)
