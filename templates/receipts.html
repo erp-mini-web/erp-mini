@@ -8,38 +8,60 @@
 
 <p><a href="/">メニューへ戻る</a></p>
 
-<h2>入庫登録（発注番号＋棚番＋ロット採番）</h2>
+<h2>入庫登録（発注番号＋ロット＋単価＋入荷場所）</h2>
 
 <form method="POST">
 
     <!-- 発注番号選択 -->
     <label>発注番号：</label>
-    <select name="po_no" required>
+    <select name="po_no" onchange="this.form.submit()">
+        <option value="">選択してください</option>
+
         {% for p in purchases %}
-        <option value="{{ p.po_no }}">
-            {{ p.po_no }} /
-            {{ suppliers[p.supplier].name }} /
-            {{ p.item_code }} ({{ items[p.item_code].name }})
-        </option>
+            {% set po_qty = p.qty %}
+            {% set received_qty = 0 %}
+
+            {% for r in receives %}
+                {% if r.po_no == p.po_no %}
+                    {% set received_qty = received_qty + r.qty %}
+                {% endif %}
+            {% endfor %}
+
+            {% set remaining_qty = po_qty - received_qty %}
+
+            {% if remaining_qty > 0 %}
+                <option value="{{ p.po_no }}" {% if selected_po == p.po_no %}selected{% endif %}>
+                    {{ p.po_no }}（残り {{ remaining_qty }}）
+                </option>
+            {% endif %}
         {% endfor %}
     </select>
-    <br><br>
 
-    <!-- 入荷場所（棚番） -->
-    <label>入荷場所：</label>
-    <select name="location_code" required>
-        {% for code, name in locations.items() %}
-        <option value="{{ code }}">{{ code }} ({{ name }})</option>
-        {% endfor %}
-    </select>
-    <br><br>
+    {% if selected_po %}
+        <hr>
 
-    <!-- 入荷数量 -->
-    <label>入荷数量：</label>
-    <input type="number" name="qty" required>
-    <br><br>
+        <p>発注数量：{{ po_qty }}</p>
+        <p>入庫済み数量：{{ received_qty }}</p>
+        <p>残り数量：{{ remaining_qty }}</p>
 
-    <button type="submit">登録</button>
+        <label>入庫数量：</label>
+        <input type="number" name="qty" min="1" max="{{ remaining_qty }}" required>
+
+        <label>ロット番号：</label>
+        <input type="text" name="lot" required>
+
+        <label>入荷場所：</label>
+        <select name="location">
+            <option value="LH009">LH009（原材料倉庫）</option>
+            <option value="LK009">LK009（中間倉庫）</option>
+            <option value="LY009">LY009（製品倉庫）</option>
+        </select>
+
+        <label>単価（0円可）：</label>
+        <input type="number" name="unit_price" min="0" step="1" value="0">
+
+        <button type="submit" name="do_receive">入庫登録</button>
+    {% endif %}
 
 </form>
 
