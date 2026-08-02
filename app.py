@@ -216,25 +216,26 @@ def receipts():
     received_qty = 0
     remaining_qty = 0
 
-    # 発注番号選択だけの POST（do_receive が無い）
+    # 発注番号選択だけの POST
     if request.method == "POST" and "do_receive" not in request.form:
         selected_po = request.form.get("po_no")
 
     # 入庫登録処理
     if request.method == "POST" and "do_receive" in request.form:
         po_no = request.form.get("po_no")
-        location = request.form.get("location")
         qty = int(request.form.get("qty"))
+        lot = request.form.get("lot")
+        location = request.form.get("location")
         unit_price = int(request.form.get("unit_price") or 0)
 
-        # 発注情報を取得
+        # 発注情報
         po = next(p for p in purchases if p["po_no"] == po_no)
         item_code = po["item_code"]
 
-        # ロット番号採番
+        # ロット採番
         lot_no = next_lot_no(item_code)
 
-        # 品目タイプで H/K/Y を振り分け
+        # H/K/Y のどの在庫に入れるか
         item_type = items[item_code]["type"]
         if item_type == "RM":
             stock = stock_H
@@ -243,11 +244,11 @@ def receipts():
         else:
             stock = stock_Y
 
-        # 棚番にロット配列が無ければ作る
+        # 棚番が無ければ作る
         if location not in stock[item_code]:
             stock[item_code][location] = []
 
-        # ロット追加（単価も保存）
+        # ロット追加
         stock[item_code][location].append({
             "lot": lot_no,
             "qty": qty,
@@ -258,7 +259,7 @@ def receipts():
         # 発注残を減らす
         po["qty"] -= qty
 
-        # 入庫履歴にも追加
+        # 入庫履歴
         receives.append({
             "po_no": po_no,
             "qty": qty,
@@ -268,10 +269,9 @@ def receipts():
             "date": datetime.now().strftime("%Y-%m-%d")
         })
 
-        # 入庫登録後はメニューへ戻る
         return redirect("/")
 
-    # 発注番号選択時の表示処理
+    # 発注番号選択時の表示
     if selected_po:
         po = next((p for p in purchases if p["po_no"] == selected_po), None)
         if po:
