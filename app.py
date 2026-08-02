@@ -113,12 +113,26 @@ customers = {
 }
 
 # ============================================================
-# ④ 棚番マスタ
+# ④ 棚番マスタ（LH / LK / LY 全登録）
 # ============================================================
 locations = {
-    "H001": {"desc": "1階東側棚"},
-    "H002": {"desc": "1階西側棚"},
-    "H003": {"desc": "2階中央棚"}
+    # --- 原糸棚（LH001〜LH005） ---
+    **{f"LH{str(i).zfill(3)}": {"desc": f"原糸棚 {str(i).zfill(3)}"} for i in range(1, 6)},
+
+    # --- 原糸棚（LH501〜LH599） ---
+    **{f"LH{str(i).zfill(3)}": {"desc": f"原糸棚 {str(i).zfill(3)}"} for i in range(501, 600)},
+
+    # --- 織物棚（LK001〜LK002） ---
+    **{f"LK{str(i).zfill(3)}": {"desc": f"織物棚 {str(i).zfill(3)}"} for i in range(1, 3)},
+
+    # --- 織物棚（LK501〜LK599） ---
+    **{f"LK{str(i).zfill(3)}": {"desc": f"織物棚 {str(i).zfill(3)}"} for i in range(501, 600)},
+
+    # --- 製品棚（LY001〜LY010） ---
+    **{f"LY{str(i).zfill(3)}": {"desc": f"製品棚 {str(i).zfill(3)}"} for i in range(1, 11)},
+
+    # --- 製品棚（LY501〜LY599） ---
+    **{f"LY{str(i).zfill(3)}": {"desc": f"製品棚 {str(i).zfill(3)}"} for i in range(501, 600)}
 }
 
 # ============================================================
@@ -186,7 +200,7 @@ def menu():
 
 
 # ============================================================
-# マスタ管理（ここが今回の修正ポイント）
+# マスタ管理（今回修正した部分）
 # ============================================================
 @app.route("/masters")
 def masters_menu():
@@ -237,7 +251,7 @@ def order():
     if request.method == "GET":
         return render_template(
             "order.html",
-            products=bom,  # ←ここは後で製品BOMに変える
+            products=bom,
             customers=customers,
             details=[],
             customer=None,
