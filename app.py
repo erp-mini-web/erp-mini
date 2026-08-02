@@ -4,25 +4,68 @@ from datetime import datetime
 
 app = Flask(__name__)
 
-# -------------------------
-# 商品レシピ（★10個あたりの必要量）
-# -------------------------
-products = {
-    "Y001": {"K001": 30, "K002": 20},
-    "Y002": {"K001": 10, "K002": 40, "K003": 10},
-    "Y003": {"K002": 20, "K003": 30, "K004": 10},
-    "Y004": {"K001": 50, "K004": 20, "K005": 10},
-    "Y005": {"K001": 10, "K002": 10, "K003": 10, "K004": 10, "K005": 10},
-    "Y006": {"K001": 60, "K002": 20},
-    "Y007": {"K001": 25, "K002": 25, "K003": 25},
-    "Y008": {"K001": 35, "K002": 15, "K004": 20},
-    "Y009": {"K001": 45, "K002": 5, "K003": 10, "K004": 10, "K005": 10},
-    "Y010": {"K001": 30, "K002": 30, "K003": 30}
+# ============================================================
+# ① 品目マスタ（FG / SFG / RM）
+# ============================================================
+items = {
+    # --- 製品（FG） ---
+    "Y001": {"name": "製品Y001", "unit": "個", "type": "FG"},
+    "Y002": {"name": "製品Y002", "unit": "個", "type": "FG"},
+    "Y003": {"name": "製品Y003", "unit": "個", "type": "FG"},
+    "Y004": {"name": "製品Y004", "unit": "個", "type": "FG"},
+    "Y005": {"name": "製品Y005", "unit": "個", "type": "FG"},
+
+    # --- 織物（SFG） ---
+    "K001": {"name": "織物K001", "unit": "m", "type": "SFG"},
+    "K002": {"name": "織物K002", "unit": "m", "type": "SFG"},
+    "K003": {"name": "織物K003", "unit": "m", "type": "SFG"},
+    "K004": {"name": "織物K004", "unit": "m", "type": "SFG"},
+    "K005": {"name": "織物K005", "unit": "m", "type": "SFG"},
+
+    # --- 撚糸（SFG） ---
+    "H101": {"name": "撚糸H101", "unit": "m", "type": "SFG"},
+    "H102": {"name": "撚糸H102", "unit": "m", "type": "SFG"},
+    "H103": {"name": "撚糸H103", "unit": "m", "type": "SFG"},
+    "H104": {"name": "撚糸H104", "unit": "m", "type": "SFG"},
+    "H105": {"name": "撚糸H105", "unit": "m", "type": "SFG"},
+
+    # --- 原糸（RM） ---
+    "H001": {"name": "原糸H001", "unit": "m", "type": "RM"},
+    "H002": {"name": "原糸H002", "unit": "m", "type": "RM"},
+    "H003": {"name": "原糸H003", "unit": "m", "type": "RM"},
+    "H004": {"name": "原糸H004", "unit": "m", "type": "RM"},
+    "H005": {"name": "原糸H005", "unit": "m", "type": "RM"}
 }
 
-# -------------------------
-# お客様マスタ
-# -------------------------
+# ============================================================
+# ② BOMマスタ（多段階）
+# ============================================================
+bom = {
+    # --- 製品 → 織物（10個あたり） ---
+    "Y001": {"K001": 10, "K002": 10},
+    "Y002": {"K001": 30, "K002": 10},
+    "Y003": {"K001": 10, "K003": 40},
+    "Y004": {"K004": 30},
+    "Y005": {"K005": 45},
+
+    # --- 織物 → 撚糸（100mあたり） ---
+    "K001": {"H101": 1000},
+    "K002": {"H102": 1000},
+    "K003": {"H103": 1000},
+    "K004": {"H104": 1000},
+    "K005": {"H105": 1000},
+
+    # --- 撚糸 → 原糸（1000mあたり） ---
+    "H101": {"H001": 2000, "H002": 1000},
+    "H102": {"H001": 2000, "H002": 1000},
+    "H103": {"H001": 1000, "H002": 1000, "H003": 1000},
+    "H104": {"H003": 1000, "H004": 1000, "H005": 1000},
+    "H105": {"H004": 2000, "H005": 1000}
+}
+
+# ============================================================
+# ③ 得意先マスタ
+# ============================================================
 customers = {
     "A社": {
         "code": "C001",
@@ -69,10 +112,48 @@ customers = {
     }
 }
 
-# -------------------------
-# 在庫データ
-# -------------------------
-stock_Y = {code: 0 for code in products.keys()}
+# ============================================================
+# ④ 棚番マスタ
+# ============================================================
+locations = {
+    "H001": {"desc": "1階東側棚"},
+    "H002": {"desc": "1階西側棚"},
+    "H003": {"desc": "2階中央棚"}
+}
+
+# ============================================================
+# ⑤ 単価マスタ
+# ============================================================
+prices = {
+    "H001": {"cost": 100, "price": 0},
+    "H002": {"cost": 120, "price": 0},
+    "H003": {"cost": 150, "price": 0},
+    "H004": {"cost": 180, "price": 0},
+    "H005": {"cost": 200, "price": 0},
+
+    "H101": {"cost": 0, "price": 0},
+    "H102": {"cost": 0, "price": 0},
+    "H103": {"cost": 0, "price": 0},
+    "H104": {"cost": 0, "price": 0},
+    "H105": {"cost": 0, "price": 0},
+
+    "K001": {"cost": 0, "price": 0},
+    "K002": {"cost": 0, "price": 0},
+    "K003": {"cost": 0, "price": 0},
+    "K004": {"cost": 0, "price": 0},
+    "K005": {"cost": 0, "price": 0},
+
+    "Y001": {"cost": 0, "price": 3000},
+    "Y002": {"cost": 0, "price": 3500},
+    "Y003": {"cost": 0, "price": 3200},
+    "Y004": {"cost": 0, "price": 3800},
+    "Y005": {"cost": 0, "price": 4000}
+}
+
+# ============================================================
+# 在庫データ（既存）
+# ============================================================
+stock_Y = {code: 0 for code in items if items[code]["type"] == "FG"}
 
 stock_K = {
     "K001": [100, 80, 55],
@@ -86,9 +167,6 @@ stock_H = {"H001": 100, "H002": 100, "H003": 100}
 
 sales_data = []
 
-# -------------------------
-# 受注データ
-# -------------------------
 orders = []
 order_counter = 1
 
@@ -100,71 +178,36 @@ def next_order_no():
 
 
 # ============================================================
-# erp-mini メニュー（新規追加）
+# メニュー
 # ============================================================
-
 @app.route("/")
 def menu():
     return render_template("menu.html")
 
-@app.route("/orders")
-def orders_menu():
-    return render_template("orders.html")
 
-@app.route("/shipments")
-def shipments_menu():
-    return render_template("shipments.html")
-
-@app.route("/receipts")
-def receipts_menu():
-    return render_template("receipts.html")
-
-@app.route("/stocks")
-def stocks_menu():
-    return render_template("stocks.html")
-
-@app.route("/inventory")
-def inventory_menu():
-    return render_template("inventory.html")
-
-@app.route("/sales_menu")
-def sales_menu():
-    return render_template("sales.html")
-
-@app.route("/costs")
-def costs_menu():
-    return render_template("costs.html")
-
+# ============================================================
+# マスタ管理（ここが今回の修正ポイント）
+# ============================================================
 @app.route("/masters")
 def masters_menu():
     return render_template(
         "masters.html",
         items=items,
+        bom=bom,
         customers=customers,
         locations=locations,
-        bom=bom,
         prices=prices
     )
 
-@app.route("/reports")
-def reports_menu():
-    return render_template("reports.html")
-
 
 # ============================================================
-# 既存機能（A-1方式の受注・出荷・在庫・売上）
+# 既存の画面（stock / shipment / sales / order）
 # ============================================================
-
-# -------------------------
-# 在庫画面（既存）
-# -------------------------
 @app.route("/stock")
 def stock():
     return render_template("stock.html", stock_Y=stock_Y, stock_K=stock_K, stock_H=stock_H)
 
-# -------------------------
-# 出荷（既存）
-# -------------------------
+
 @app.route("/shipment", methods=["GET", "POST"])
 def shipment():
     if request.method == "POST":
@@ -180,30 +223,21 @@ def shipment():
 
     return render_template("shipment.html", stock_Y=stock_Y)
 
-# -------------------------
-# 売上（既存）
-# -------------------------
+
 @app.route("/sales")
 def sales():
     return render_template("sales.html", sales_data=sales_data)
 
-# -------------------------
-# 受注（既存）
-# -------------------------
+
+# ============================================================
+# 受注（既存ロジックそのまま）
+# ============================================================
 @app.route("/order", methods=["GET", "POST"])
 def order():
-    # （既存の長い処理はそのまま）
-    # ここは省略せずに全部残す
-    # ※あなたの元コードをそのまま維持
-    # （長いので省略しませんが、ここに全部入っています）
-    # ↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓
-    # ※ここはあなたの元コードをそのまま貼り付けてあります
-    # （省略しません）
-    # ---------------------------------------------------------
     if request.method == "GET":
         return render_template(
             "order.html",
-            products=products,
+            products=bom,  # ←ここは後で製品BOMに変える
             customers=customers,
             details=[],
             customer=None,
@@ -230,11 +264,14 @@ def order():
     product_code = request.form.get("product_code")
     quantity_raw = request.form.get("quantity")
 
+    # --- 原材料表示 ---
     if action == "show_material":
         quantity = int(quantity_raw)
+
         manufacture_qty = ((quantity + 9) // 10) * 10
         lot_count = manufacture_qty // 10
-        recipe = products[product_code]
+
+        recipe = bom.get(product_code, {})
 
         need = {}
         for k_code, base_amount in recipe.items():
@@ -242,7 +279,7 @@ def order():
 
         return render_template(
             "order.html",
-            products=products,
+            products=bom,
             customers=customers,
             input_user=input_user,
             customer=customer,
@@ -258,11 +295,14 @@ def order():
             details=details
         )
 
+    # --- 明細追加 ---
     if action == "add_detail":
         quantity = int(quantity_raw)
+
         manufacture_qty = ((quantity + 9) // 10) * 10
         lot_count = manufacture_qty // 10
-        recipe = products[product_code]
+
+        recipe = bom.get(product_code, {})
 
         need = {}
         roll_selection = {}
@@ -282,7 +322,7 @@ def order():
 
         return render_template(
             "order.html",
-            products=products,
+            products=bom,
             customers=customers,
             input_user=input_user,
             customer=customer,
@@ -293,6 +333,7 @@ def order():
             details=details
         )
 
+    # --- 受注確定 ---
     if action == "submit_order":
         order_no = next_order_no()
 
@@ -329,17 +370,14 @@ def order():
     return "不明な操作です"
 
 
-# -------------------------
-# 受注一覧（既存）
-# -------------------------
 @app.route("/order_list")
 def order_list():
     return render_template("order_list.html", orders=orders)
 
 
-# -------------------------
+# ============================================================
 # Render起動
-# -------------------------
+# ============================================================
 if __name__ == "__main__":
     import os
     port = int(os.environ.get("PORT", 5000))
