@@ -437,6 +437,57 @@ def orders_list():
     )
 
 # ============================================================
+# 購買対象品目（NEW）
+# ============================================================
+purchase_items = ["H001", "H002", "H003", "H004", "H005",
+                  "A4", "A3", "RING1", "RING2"]
+
+# ============================================================
+# 仕入先マスタ（NEW）
+# ============================================================
+suppliers = {
+    "SUP001": {"name": "A商事", "items": ["H001", "H002", "H003"]},
+    "SUP002": {"name": "B物産", "items": ["H004", "H005"]},
+    "SUP003": {"name": "C紙業", "items": ["A4", "A3"]},
+    "SUP004": {"name": "Dリング工業", "items": ["RING1", "RING2"]},
+}
+
+# ============================================================
+# 発注登録（NEW）
+# ============================================================
+purchases = []
+
+def next_po_no():
+    return f"P{len(purchases)+1:05d}"
+
+@app.route("/purchase", methods=["GET", "POST"])
+def purchase():
+    if request.method == "GET":
+        return render_template(
+            "purchase.html",
+            suppliers=suppliers,
+            items=items,
+            purchase_items=purchase_items
+        )
+
+    supplier = request.form.get("supplier")
+    item_code = request.form.get("item_code")
+    qty = int(request.form.get("qty"))
+    due = request.form.get("due")
+
+    po_no = next_po_no()
+
+    purchases.append({
+        "po_no": po_no,
+        "supplier": supplier,
+        "item_code": item_code,
+        "qty": qty,
+        "due": due
+    })
+
+    return redirect("/")
+
+# ============================================================
 # 棚卸（棚番別棚卸入力）
 # ============================================================
 @app.route("/inventory", methods=["GET", "POST"])
