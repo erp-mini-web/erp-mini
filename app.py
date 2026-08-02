@@ -8,28 +8,24 @@ app = Flask(__name__)
 # ① 品目マスタ（FG / SFG / RM）
 # ============================================================
 items = {
-    # --- 製品（FG） ---
     "Y001": {"name": "製品Y001", "unit": "個", "type": "FG"},
     "Y002": {"name": "製品Y002", "unit": "個", "type": "FG"},
     "Y003": {"name": "製品Y003", "unit": "個", "type": "FG"},
     "Y004": {"name": "製品Y004", "unit": "個", "type": "FG"},
     "Y005": {"name": "製品Y005", "unit": "個", "type": "FG"},
 
-    # --- 織物（SFG） ---
     "K001": {"name": "織物K001", "unit": "m", "type": "SFG"},
     "K002": {"name": "織物K002", "unit": "m", "type": "SFG"},
     "K003": {"name": "織物K003", "unit": "m", "type": "SFG"},
     "K004": {"name": "織物K004", "unit": "m", "type": "SFG"},
     "K005": {"name": "織物K005", "unit": "m", "type": "SFG"},
 
-    # --- 撚糸（SFG） ---
     "H101": {"name": "撚糸H101", "unit": "m", "type": "SFG"},
     "H102": {"name": "撚糸H102", "unit": "m", "type": "SFG"},
     "H103": {"name": "撚糸H103", "unit": "m", "type": "SFG"},
     "H104": {"name": "撚糸H104", "unit": "m", "type": "SFG"},
     "H105": {"name": "撚糸H105", "unit": "m", "type": "SFG"},
 
-    # --- 原糸（RM） ---
     "H001": {"name": "原糸H001", "unit": "m", "type": "RM"},
     "H002": {"name": "原糸H002", "unit": "m", "type": "RM"},
     "H003": {"name": "原糸H003", "unit": "m", "type": "RM"},
@@ -151,7 +147,7 @@ prices = {
 }
 
 # ============================================================
-# ⑥ 棚番別在庫構造（初期在庫ゼロ）
+# ⑥ 在庫構造（棚番 × ロット × 数量 × 受注番号）
 # ============================================================
 stock_H = {code: {} for code in items if items[code]["type"] == "RM"}
 stock_K = {code: {} for code in items if items[code]["type"] == "SFG"}
@@ -175,7 +171,6 @@ def next_lot_no():
     lot_no = f"{today}-{lot_counter[today]:03d}"
     lot_counter[today] += 1
     return lot_no
-
 # ============================================================
 # メニュー
 # ============================================================
@@ -244,7 +239,6 @@ def stocks():
         locations=locations,
         items=items
     )
-
 # ============================================================
 # 出荷管理（棚番からピッキング）
 # ============================================================
@@ -398,7 +392,6 @@ def production_list():
                 })
 
     return render_template("production_list.html", production_records=production_records)
-
 # ============================================================
 # 棚卸（棚番別棚卸入力）
 # ============================================================
@@ -420,6 +413,7 @@ def inventory():
     location_code = request.form.get("location_code")
     item_code = request.form.get("item_code")
 
+    # 画面再表示（棚番・品目選択時）
     if not action:
         return render_template(
             "inventory.html",
@@ -428,3 +422,33 @@ def inventory():
             stock=merged_stock,
             selected_location=location_code,
             selected_item=item_code
+        )
+
+    # 棚卸登録処理
+    lot_no = request.form.get("lot_no")
+    actual_qty = int(request.form.get("actual_qty"))
+
+    item_type = items[item_code]["type"]
+    if item_type == "RM":
+        stock = stock_H
+    elif item_type == "SFG":
+        stock = stock_K
+    else:
+        stock = stock_Y
+
+    lots = stock[item_code][location_code]
+
+    for lot in lots:
+        if lot["lot"] == lot_no:
+            lot["qty"] = actual_qty
+            return f"棚卸完了：{item_code} / ロット {lot_no} / 棚番 {location_code} を {actual_qty} に更新しました"
+
+    return "ロットが見つかりません"
+
+# ============================================================
+# Render起動
+# ============================================================
+if __name__ == "__main__":
+    import os
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port)
