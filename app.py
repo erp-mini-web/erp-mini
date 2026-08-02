@@ -211,11 +211,11 @@ def masters_menu():
 # ============================================================
 @app.route("/receipts", methods=["GET", "POST"])
 def receipts():
-    # 入庫履歴が無ければ初期化
     global receives
     if "receives" not in globals():
         receives = []
 
+    # 初期値（GET時に必要）
     selected_po = None
     selected_item = None
     selected_supplier = None
@@ -224,13 +224,13 @@ def receipts():
     remaining_qty = 0
 
     # ------------------------------------------------------------
-    # ① 発注番号を選択しただけの POST（do_receive が無い）
+    # ① 発注番号選択だけの POST
     # ------------------------------------------------------------
     if request.method == "POST" and "do_receive" not in request.form:
         selected_po = request.form.get("po_no")
 
     # ------------------------------------------------------------
-    # ② 入庫登録処理（do_receive がある）
+    # ② 入庫登録処理
     # ------------------------------------------------------------
     if request.method == "POST" and "do_receive" in request.form:
         po_no = request.form.get("po_no")
@@ -259,7 +259,7 @@ def receipts():
         if location not in stock[item_code]:
             stock[item_code][location] = []
 
-        # ロット追加（単価も保存）
+        # ロット追加
         stock[item_code][location].append({
             "lot": lot_no,
             "qty": qty,
@@ -267,10 +267,10 @@ def receipts():
             "order_no": po.get("order_no")
         })
 
-        # 発注残を減らす（直樹の ERP-mini の仕様）
+        # 発注残を減らす
         po["qty"] -= qty
 
-        # 入庫履歴にも追加
+        # 入庫履歴
         receives.append({
             "po_no": po_no,
             "qty": qty,
@@ -280,7 +280,6 @@ def receipts():
             "date": datetime.now().strftime("%Y-%m-%d")
         })
 
-        # 入庫登録後はメニューへ戻る（ブラウザ戻る事故防止）
         return redirect("/")
 
     # ------------------------------------------------------------
@@ -297,7 +296,7 @@ def receipts():
             remaining_qty = po_qty - received_qty
 
     # ------------------------------------------------------------
-    # ④ 画面描画
+    # ④ 画面描画（GET時も必ず selected_item などを渡す）
     # ------------------------------------------------------------
     return render_template(
         "receipts.html",
