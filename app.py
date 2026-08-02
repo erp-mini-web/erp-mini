@@ -487,7 +487,6 @@ def next_po_no():
 
 @app.route("/purchase", methods=["GET", "POST"])
 def purchase():
-    # POST（仕入先選択 or 発注登録）
     if request.method == "POST":
         supplier = request.form.get("supplier")
 
