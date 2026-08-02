@@ -41,18 +41,21 @@ items = {
 # ② BOMマスタ（多段階）
 # ============================================================
 bom = {
+    # 製品 → 織物
     "Y001": {"K001": 10, "K002": 10},
     "Y002": {"K001": 30, "K002": 10},
     "Y003": {"K001": 10, "K003": 40},
     "Y004": {"K004": 30},
     "Y005": {"K005": 45},
 
+    # 織物 → 撚糸
     "K001": {"H101": 1000},
     "K002": {"H102": 1000},
     "K003": {"H103": 1000},
     "K004": {"H104": 1000},
     "K005": {"H105": 1000},
 
+    # 撚糸 → 原糸
     "H101": {"H001": 2000, "H002": 1000},
     "H102": {"H001": 2000, "H002": 1000},
     "H103": {"H001": 1000, "H002": 1000, "H003": 1000},
@@ -92,6 +95,7 @@ customers = {
 # ④ 棚番マスタ（LH / LK / LY）
 # ============================================================
 locations = {
+    # LH（H系）
     "LH001": {"desc": "原糸置き場 001"},
     "LH002": {"desc": "原糸→撚糸設置１ 002"},
     "LH003": {"desc": "原糸→撚糸設置２ 003"},
@@ -102,12 +106,14 @@ locations = {
     "LH010": {"desc": "H出荷品置き場"},
     **{f"LH{str(i).zfill(3)}": {"desc": f"立体倉庫 {str(i).zfill(3)}"} for i in range(501, 600)},
 
+    # LK（K系）
     "LK001": {"desc": "K1工場"},
     "LK002": {"desc": "K2工場"},
     "LK009": {"desc": "K搬入品置き場"},
     "LK010": {"desc": "K出荷品置き場"},
     **{f"LK{str(i).zfill(3)}": {"desc": f"K倉庫 {str(i).zfill(3)}"} for i in range(501, 600)},
 
+    # LY（Y系）
     "LY001": {"desc": "湿式"},
     "LY002": {"desc": "乾式"},
     "LY003": {"desc": "乾式スリッター"},
@@ -313,7 +319,7 @@ def shipping():
     return "ロットが見つかりません"
 
 # ============================================================
-# ⑤ 製造実績（棚番に入庫）
+# 製造実績（棚番に入庫）
 # ============================================================
 @app.route("/production", methods=["GET", "POST"])
 def production():
@@ -350,6 +356,57 @@ def production():
     })
 
     return f"製造実績を登録しました：{item_code} / {qty} / ロット {lot_no} / 棚番 {location_code} / 受注 {order_no}"
+
+# ============================================================
+# 棚卸（棚番別棚卸入力）
+# ============================================================
+@app.route("/inventory", methods=["GET", "POST"])
+def inventory():
+    merged_stock = {**stock_H, **stock_K, **stock_Y}
+
+    if request.method == "GET":
+        return render_template(
+            "inventory.html",
+            locations=locations,
+            items=items,
+            stock=merged_stock,
+            selected_location=None,
+            selected_item=None
+        )
+
+    action = request.form.get("action")
+    location_code = request.form.get("location_code")
+    item_code = request.form.get("item_code")
+
+    if not action:
+        return render_template(
+            "inventory.html",
+            locations=locations,
+            items=items,
+            stock=merged_stock,
+            selected_location=location_code,
+            selected_item=item_code
+        )
+
+    lot_no = request.form.get("lot_no")
+    actual_qty = int(request.form.get("actual_qty"))
+
+    item_type = items[item_code]["type"]
+    if item_type == "RM":
+        stock = stock_H
+    elif item_type == "SFG":
+        stock = stock_K
+    else:
+        stock = stock_Y
+
+    lots = stock[item_code][location_code]
+
+    for lot in lots:
+        if lot["lot"] == lot_no:
+            lot["qty"] = actual_qty
+            return f"棚卸完了：{item_code} / ロット {lot_no} / 棚番 {location_code} を {actual_qty} に更新しました"
+
+    return "ロットが見つかりません"
 
 # ============================================================
 # Render起動
