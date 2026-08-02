@@ -1,22 +1,45 @@
-<h2>受注管理</h2>
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>受注登録</title>
+</head>
+<body>
 
-<h3>受注一覧</h3>
-<table border="1">
-    <tr>
-        <th>受注番号</th>
-        <th>受注日</th>
-        <th>得意先</th>
-        <th>金額</th>
-        <th>ステータス</th>
-    </tr>
-    <tr>
-        <td>ORD00001</td>
-        <td>2026-08-02</td>
-        <td>テスト商事</td>
-        <td>120,000</td>
-        <td>新規</td>
-    </tr>
-</table>
+<p><a href="/">メニューへ戻る</a></p>
 
-<h3>受注登録</h3>
-<p>得意先・受注日・品目・数量・単価などを入力する画面をここに作っていく。</p>
+<h2>受注登録</h2>
+
+<form method="POST">
+    <label>得意先：</label>
+    <select name="customer" required>
+        {% for c in customers %}
+        <option value="{{ c }}">{{ c }}</option>
+        {% endfor %}
+    </select><br><br>
+
+    <label>納品先：</label>
+    <select name="destination" required>
+        {% for d in customers[selected_customer].destinations %}
+        <option value="{{ d }}">{{ d }}</option>
+        {% endfor %}
+    </select><br><br>
+
+    <label>品目：</label>
+    <select name="item_code" required>
+        {% for code, item in items.items() %}
+        <option value="{{ code }}">{{ code }} ({{ item.name }})</option>
+        {% endfor %}
+    </select><br><br>
+
+    <label>数量：</label>
+    <input type="number" name="qty" required><br><br>
+
+    <label>納期：</label>
+    <input type="date" name="due" required><br><br>
+
+    <button type="submit">登録</button>
+</form>
+
+</body>
+</html>
