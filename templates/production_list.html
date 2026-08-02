@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>製造実績一覧</title>
+</head>
+<body>
+
+<p><a href="/">メニューへ戻る</a></p>
+
+<h2>製造実績一覧</h2>
+
+<table border="1">
+    <tr>
+        <th>品目コード</th>
+        <th>品目名</th>
+        <th>棚番</th>
+        <th>ロット</th>
+        <th>数量</th>
+        <th>受注番号</th>
+    </tr>
+
+    {% for rec in production_records %}
+    <tr>
+        <td>{{ rec.item_code }}</td>
+        <td>{{ rec.item_name }}</td>
+        <td>{{ rec.location }}</td>
+        <td>{{ rec.lot }}</td>
+        <td>{{ rec.qty }}</td>
+        <td>{{ rec.order_no }}</td>
+    </tr>
+    {% endfor %}
+</table>
+
+</body>
+</html>
