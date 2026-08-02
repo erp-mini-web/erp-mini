@@ -20,24 +20,17 @@
         }
 
         h3 {
-            margin-top: 30px;
             font-size: 20px;
             color: #4a90e2;
+            margin-bottom: 10px;
             border-bottom: 1px solid #ddd;
             padding-bottom: 4px;
         }
 
-        /* ▼ ボタンを横並びにする（幅は統一） */
-        .menu-group {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-            gap: 10px;
-            margin-top: 10px;
-            margin-bottom: 20px;
-        }
-
+        /* ▼ ボタン固定サイズ（受注登録と同じ） */
         .menu-btn {
-            display: block;
+            display: inline-block;
+            width: 160px;       /* ← 固定幅 */
             padding: 12px;
             background: white;
             border-radius: 6px;
@@ -47,6 +40,7 @@
             text-align: center;
             transition: 0.15s;
             font-weight: 500;
+            margin: 5px;
         }
 
         .menu-btn:hover {
@@ -55,10 +49,23 @@
             border-color: #4a90e2;
         }
 
-        @media (max-width: 600px) {
-            body {
-                margin: 20px;
-            }
+        /* ▼ ボタンを横に並べる */
+        .menu-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        /* ▼ マスタ管理とトレーサビリティを横に並べる2カラム */
+        .two-column {
+            display: flex;
+            gap: 40px;
+            margin-bottom: 30px;
+        }
+
+        .column {
+            flex: 1;
         }
     </style>
 </head>
@@ -85,16 +92,23 @@
     <a class="menu-btn" href="/shipping_list">出荷実績一覧</a>
 </div>
 
-<!-- トレーサビリティ -->
-<h3>トレーサビリティ</h3>
-<div class="menu-group">
-    <a class="menu-btn" href="/lot_trace">ロットトレース</a>
-</div>
+<!-- ▼ マスタ管理とトレーサビリティを横に並べる -->
+<div class="two-column">
 
-<!-- マスタ管理（トレーサビリティのすぐ下に配置） -->
-<h3>マスタ管理</h3>
-<div class="menu-group">
-    <a class="menu-btn" href="/masters">マスタ一覧</a>
+    <div class="column">
+        <h3>マスタ管理</h3>
+        <div class="menu-group">
+            <a class="menu-btn" href="/masters">マスタ一覧</a>
+        </div>
+    </div>
+
+    <div class="column">
+        <h3>トレーサビリティ</h3>
+        <div class="menu-group">
+            <a class="menu-btn" href="/lot_trace">ロットトレース</a>
+        </div>
+    </div>
+
 </div>
 
 <!-- 棚卸 -->
