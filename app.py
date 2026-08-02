@@ -137,7 +137,14 @@ def costs_menu():
 
 @app.route("/masters")
 def masters_menu():
-    return render_template("masters.html")
+    return render_template(
+        "masters.html",
+        items=items,
+        customers=customers,
+        locations=locations,
+        bom=bom,
+        prices=prices
+    )
 
 @app.route("/reports")
 def reports_menu():
