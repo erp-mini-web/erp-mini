@@ -1,464 +1,417 @@
+from flask import Flask, render_template, request, redirect
+import json
 from datetime import datetime
-from flask import Flask, render_template_string, request, redirect, url_for
-from flask_sqlalchemy import SQLAlchemy
 
 app = Flask(__name__)
-app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///erp_mini.db"
-app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
-db = SQLAlchemy(app)
 
-# ==========
-# モデル定義
-# ==========
+# ============================================================
+# ① 品目マスタ（FG / SFG / RM）
+# ============================================================
+items = {
+    "Y001": {"name": "製品Y001", "unit": "個", "type": "FG"},
+    "Y002": {"name": "製品Y002", "unit": "個", "type": "FG"},
+    "Y003": {"name": "製品Y003", "unit": "個", "type": "FG"},
+    "Y004": {"name": "製品Y004", "unit": "個", "type": "FG"},
+    "Y005": {"name": "製品Y005", "unit": "個", "type": "FG"},
 
-class Item(db.Model):
-    __tablename__ = "items"
-    id = db.Column(db.Integer, primary_key=True)
-    item_code = db.Column(db.String(50), unique=True, nullable=False)
-    item_name = db.Column(db.String(100), nullable=False)
+    "K001": {"name": "織物K001", "unit": "m", "type": "SFG"},
+    "K002": {"name": "織物K002", "unit": "m", "type": "SFG"},
+    "K003": {"name": "織物K003", "unit": "m", "type": "SFG"},
+    "K004": {"name": "織物K004", "unit": "m", "type": "SFG"},
+    "K005": {"name": "織物K005", "unit": "m", "type": "SFG"},
 
-class Location(db.Model):
-    __tablename__ = "locations"
-    id = db.Column(db.Integer, primary_key=True)
-    location_code = db.Column(db.String(50), unique=True, nullable=False)
-    location_name = db.Column(db.String(100), nullable=False)
+    "H101": {"name": "撚糸H101", "unit": "m", "type": "SFG"},
+    "H102": {"name": "撚糸H102", "unit": "m", "type": "SFG"},
+    "H103": {"name": "撚糸H103", "unit": "m", "type": "SFG"},
+    "H104": {"name": "撚糸H104", "unit": "m", "type": "SFG"},
+    "H105": {"name": "撚糸H105", "unit": "m", "type": "SFG"},
 
-class Inventory(db.Model):
-    """
-    棚番 × 品目 × ロット別在庫
-    """
-    __tablename__ = "inventory"
-    id = db.Column(db.Integer, primary_key=True)
-    item_code = db.Column(db.String(50), nullable=False)
-    location_code = db.Column(db.String(50), nullable=False)
-    lot_no = db.Column(db.String(100), nullable=False)
-    manufactured_date = db.Column(db.String(8), nullable=False)  # YYYYMMDD
-    use_by_date = db.Column(db.String(8), nullable=False)        # YYYYMMDD
-    qty = db.Column(db.Integer, nullable=False, default=0)
+    "H001": {"name": "原糸H001", "unit": "m", "type": "RM"},
+    "H002": {"name": "原糸H002", "unit": "m", "type": "RM"},
+    "H003": {"name": "原糸H003", "unit": "m", "type": "RM"},
+    "H004": {"name": "原糸H004", "unit": "m", "type": "RM"},
+    "H005": {"name": "原糸H005", "unit": "m", "type": "RM"}
+}
 
-class StockTransaction(db.Model):
-    """
-    在庫トランザクション（入庫・出荷・棚卸）
-    """
-    __tablename__ = "stock_transactions"
-    id = db.Column(db.Integer, primary_key=True)
-    tran_type = db.Column(db.String(10), nullable=False)  # IN / OUT / ADJ
-    item_code = db.Column(db.String(50), nullable=False)
-    location_code = db.Column(db.String(50), nullable=False)
-    lot_no = db.Column(db.String(100), nullable=False)
-    manufactured_date = db.Column(db.String(8), nullable=False)
-    use_by_date = db.Column(db.String(8), nullable=False)
-    qty = db.Column(db.Integer, nullable=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+# ============================================================
+# ② BOMマスタ（多段階）
+# ============================================================
+bom = {
+    "Y001": {"K001": 10, "K002": 10},
+    "Y002": {"K001": 30, "K002": 10},
+    "Y003": {"K001": 10, "K003": 40},
+    "Y004": {"K004": 30},
+    "Y005": {"K005": 45},
 
+    "K001": {"H101": 1000},
+    "K002": {"H102": 1000},
+    "K003": {"H103": 1000},
+    "K004": {"H104": 1000},
+    "K005": {"H105": 1000},
 
-# ==========
-# 初期化
-# ==========
+    "H101": {"H001": 2000, "H002": 1000},
+    "H102": {"H001": 2000, "H002": 1000},
+    "H103": {"H001": 1000, "H002": 1000, "H003": 1000},
+    "H104": {"H003": 1000, "H004": 1000, "H005": 1000},
+    "H105": {"H004": 2000, "H005": 1000}
+}
 
-@app.before_first_request
-def init_db():
-    db.create_all()
-    # サンプルマスタ
-    if not Item.query.first():
-        db.session.add_all([
-            Item(item_code="H001", item_name="黒生地"),
-            Item(item_code="H002", item_name="白生地"),
-        ])
-    if not Location.query.first():
-        db.session.add_all([
-            Location(location_code="A-01", location_name="棚A-01"),
-            Location(location_code="B-01", location_name="棚B-01"),
-        ])
-    db.session.commit()
+# ============================================================
+# ③ 得意先マスタ
+# ============================================================
+customers = {
+    "A社": {
+        "code": "C001",
+        "destinations": {
+            "北海道": "北海道札幌市中央区北1条西2丁目",
+            "東京": "東京都千代田区丸の内1丁目",
+            "大阪": "大阪府大阪市北区梅田1丁目"
+        }
+    },
+    "B社": {
+        "code": "C002",
+        "destinations": {
+            "名古屋": "愛知県名古屋市中村区名駅1丁目",
+            "岡山": "岡山県岡山市北区駅前町1丁目"
+        }
+    },
+    "C社": {
+        "code": "C003",
+        "destinations": {
+            "福岡": "福岡県福岡市博多区博多駅前1丁目",
+            "熊本": "熊本県熊本市中央区手取本町"
+        }
+    }
+}
 
+# ============================================================
+# ④ 棚番マスタ（LH / LK / LY）
+# ============================================================
+locations = {
+    "LH001": {"desc": "原糸置き場 001"},
+    "LH002": {"desc": "原糸→撚糸設置１ 002"},
+    "LH003": {"desc": "原糸→撚糸設置２ 003"},
+    "LH004": {"desc": "撚糸置き場 004"},
+    "LH005": {"desc": "撚糸→織物設置１ 005"},
+    "LH006": {"desc": "撚糸→織物設置２ 006"},
+    "LH009": {"desc": "H搬入品置き場"},
+    "LH010": {"desc": "H出荷品置き場"},
+    **{f"LH{str(i).zfill(3)}": {"desc": f"立体倉庫 {str(i).zfill(3)}"} for i in range(501, 600)},
 
-# ==========
-# ロット番号自動採番
-# ==========
+    "LK001": {"desc": "K1工場"},
+    "LK002": {"desc": "K2工場"},
+    "LK009": {"desc": "K搬入品置き場"},
+    "LK010": {"desc": "K出荷品置き場"},
+    **{f"LK{str(i).zfill(3)}": {"desc": f"K倉庫 {str(i).zfill(3)}"} for i in range(501, 600)},
 
-def generate_lot_no(item_code: str, manufactured_date_yyyymmdd: str) -> str:
-    """
-    LOT-{item_code}-{YYYYMMDD}-{seq:03d}
-    """
-    existing = (
-        Inventory.query
-        .filter_by(item_code=item_code, manufactured_date=manufactured_date_yyyymmdd)
-        .all()
-    )
-    seq = len(existing) + 1
-    lot_no = f"LOT-{item_code}-{manufactured_date_yyyymmdd}-{seq:03d}"
-    return lot_no
+    "LY001": {"desc": "湿式"},
+    "LY002": {"desc": "乾式"},
+    "LY003": {"desc": "乾式スリッター"},
+    "LY004": {"desc": "乾式CP"},
+    "LY005": {"desc": "乾式ベルト"},
+    "LY006": {"desc": "乾式特殊"},
+    "LY007": {"desc": "Y倉庫一次置き場"},
+    "LY008": {"desc": "Y倉庫簡易加工場"},
+    "LY009": {"desc": "Y搬入品置き場"},
+    "LY010": {"desc": "Y出荷品置き場"},
+    **{f"LY{str(i).zfill(3)}": {"desc": f"Y倉庫 {str(i).zfill(3)}"} for i in range(501, 600)}
+}
 
+# ============================================================
+# ⑤ 単価マスタ
+# ============================================================
+prices = {
+    "H001": {"cost": 100, "price": 0},
+    "H002": {"cost": 120, "price": 0},
+    "H003": {"cost": 150, "price": 0},
+    "H004": {"cost": 180, "price": 0},
+    "H005": {"cost": 200, "price": 0},
 
-# ==========
-# テンプレート（簡易）
-# ==========
+    "H101": {"cost": 0, "price": 0},
+    "H102": {"cost": 0, "price": 0},
+    "H103": {"cost": 0, "price": 0},
+    "H104": {"cost": 0, "price": 0},
+    "H105": {"cost": 0, "price": 0},
 
-layout = """
-<!doctype html>
-<html lang="ja">
-<head>
-  <meta charset="utf-8">
-  <title>ERP-mini ロット管理入り</title>
-  <style>
-    body {{ font-family: sans-serif; margin: 20px; }}
-    nav a {{ margin-right: 10px; }}
-    table {{ border-collapse: collapse; width: 100%; margin-top: 10px; }}
-    th, td {{ border: 1px solid #ccc; padding: 4px 8px; font-size: 12px; }}
-    th {{ background: #eee; }}
-    .danger {{ background: #ffe0e0; }}
-    .warn {{ background: #fff4cc; }}
-  </style>
-</head>
-<body>
-<nav>
-  <a href="{{ url_for('index') }}">在庫一覧</a>
-  <a href="{{ url_for('inbound') }}">入庫</a>
-  <a href="{{ url_for('outbound') }}">出荷</a>
-  <a href="{{ url_for('stocktake') }}">棚卸</a>
-  <a href="{{ url_for('lot_view') }}">ロット別在庫</a>
-</nav>
-<hr>
-{% block content %}{% endblock %}
-</body>
-</html>
-"""
+    "K001": {"cost": 0, "price": 0},
+    "K002": {"cost": 0, "price": 0},
+    "K003": {"cost": 0, "price": 0},
+    "K004": {"cost": 0, "price": 0},
+    "K005": {"cost": 0, "price": 0},
 
-# ==========
-# 画面
-# ==========
+    "Y001": {"cost": 0, "price": 3000},
+    "Y002": {"cost": 0, "price": 3500},
+    "Y003": {"cost": 0, "price": 3200},
+    "Y004": {"cost": 0, "price": 3800},
+    "Y005": {"cost": 0, "price": 4000}
+}
 
+# ============================================================
+# ⑥ 在庫構造（棚番 × ロット × 数量 × 受注番号）
+# ============================================================
+stock_H = {code: {} for code in items if items[code]["type"] == "RM"}
+stock_K = {code: {} for code in items if items[code]["type"] == "SFG"}
+stock_Y = {code: {} for code in items if items[code]["type"] == "FG"}
+
+sales_data = []
+orders = []
+order_counter = 1
+
+# ============================================================
+# ロット番号（新方式：LOT-品目コード-YYYYMMDD-001）
+# ============================================================
+lot_counter = {}  # { item_code: { date: seq } }
+
+def next_lot_no(item_code):
+    today = datetime.now().strftime("%Y%m%d")
+
+    if item_code not in lot_counter:
+        lot_counter[item_code] = {}
+
+    if today not in lot_counter[item_code]:
+        lot_counter[item_code][today] = 1
+
+    seq = lot_counter[item_code][today]
+    lot_counter[item_code][today] += 1
+
+    return f"LOT-{item_code}-{today}-{seq:03d}"
+
+# ============================================================
+# 受注番号
+# ============================================================
+def next_order_no():
+    global order_counter
+    order_no = f"T{order_counter:05d}"
+    order_counter += 1
+    return order_no
+
+# ============================================================
+# メニュー
+# ============================================================
 @app.route("/")
-def index():
-    inventories = Inventory.query.order_by(
-        Inventory.item_code, Inventory.location_code, Inventory.lot_no
-    ).all()
-    today = datetime.today().strftime("%Y%m%d")
-    return render_template_string(
-        layout + """
-{% block content %}
-<h2>在庫一覧（棚番 × 品目 × ロット）</h2>
-<table>
-  <tr>
-    <th>品目コード</th>
-    <th>棚番</th>
-    <th>ロット番号</th>
-    <th>製造日</th>
-    <th>使用期限</th>
-    <th>数量</th>
-  </tr>
-  {% for inv in inventories %}
-    {% set cls = "" %}
-    {% if inv.use_by_date < today %}
-      {% set cls = "danger" %}
-    {% elif inv.use_by_date <= (today[:4] + today[4:6] + "{:02d}".format(int(today[6:]) + 30 if int(today[6:]) < 70 else int(today[6:]))) %}
-      {% set cls = "warn" %}
-    {% endif %}
-    <tr class="{{ cls }}">
-      <td>{{ inv.item_code }}</td>
-      <td>{{ inv.location_code }}</td>
-      <td>{{ inv.lot_no }}</td>
-      <td>{{ inv.manufactured_date }}</td>
-      <td>{{ inv.use_by_date }}</td>
-      <td style="text-align:right">{{ inv.qty }}</td>
-    </tr>
-  {% endfor %}
-</table>
-{% endblock %}
-""",
-        inventories=inventories,
-        today=today,
-    )
+def menu():
+    return render_template("menu.html")
 
-
-@app.route("/inbound", methods=["GET", "POST"])
-def inbound():
-    items = Item.query.all()
-    locations = Location.query.all()
-
-    if request.method == "POST":
-        item_code = request.form.get("item_code")
-        location_code = request.form.get("location_code")
-        qty = int(request.form.get("qty") or 0)
-        manufactured_date = request.form.get("manufactured_date")  # YYYY-MM-DD
-        use_by_date = request.form.get("use_by_date")              # YYYY-MM-DD
-
-        if qty <= 0:
-            return redirect(url_for("inbound"))
-
-        mfg_yyyymmdd = datetime.strptime(manufactured_date, "%Y-%m-%d").strftime("%Y%m%d")
-        use_yyyymmdd = datetime.strptime(use_by_date, "%Y-%m-%d").strftime("%Y%m%d")
-
-        lot_no = generate_lot_no(item_code, mfg_yyyymmdd)
-
-        inv = Inventory.query.filter_by(
-            item_code=item_code,
-            location_code=location_code,
-            lot_no=lot_no,
-        ).first()
-        if not inv:
-            inv = Inventory(
-                item_code=item_code,
-                location_code=location_code,
-                lot_no=lot_no,
-                manufactured_date=mfg_yyyymmdd,
-                use_by_date=use_yyyymmdd,
-                qty=0,
-            )
-            db.session.add(inv)
-
-        inv.qty += qty
-
-        tran = StockTransaction(
-            tran_type="IN",
-            item_code=item_code,
-            location_code=location_code,
-            lot_no=lot_no,
-            manufactured_date=mfg_yyyymmdd,
-            use_by_date=use_yyyymmdd,
-            qty=qty,
-        )
-        db.session.add(tran)
-        db.session.commit()
-
-        return redirect(url_for("index"))
-
-    return render_template_string(
-        layout + """
-{% block content %}
-<h2>入庫（ロット自動採番）</h2>
-<form method="post">
-  <label>品目コード：</label>
-  <select name="item_code">
-    {% for i in items %}
-      <option value="{{ i.item_code }}">{{ i.item_code }} - {{ i.item_name }}</option>
-    {% endfor %}
-  </select><br><br>
-
-  <label>棚番：</label>
-  <select name="location_code">
-    {% for l in locations %}
-      <option value="{{ l.location_code }}">{{ l.location_code }} - {{ l.location_name }}</option>
-    {% endfor %}
-  </select><br><br>
-
-  <label>数量：</label>
-  <input type="number" name="qty" min="1" value="1"><br><br>
-
-  <label>製造日：</label>
-  <input type="date" name="manufactured_date" required><br><br>
-
-  <label>使用期限：</label>
-  <input type="date" name="use_by_date" required><br><br>
-
-  <button type="submit">入庫登録（ロット番号自動生成）</button>
-</form>
-{% endblock %}
-""",
+# ============================================================
+# マスタ管理
+# ============================================================
+@app.route("/masters")
+def masters_menu():
+    return render_template(
+        "masters.html",
         items=items,
+        bom=bom,
+        customers=customers,
         locations=locations,
+        prices=prices
     )
 
-
-@app.route("/outbound", methods=["GET", "POST"])
-def outbound():
-    inventories = Inventory.query.order_by(
-        Inventory.item_code, Inventory.location_code, Inventory.lot_no
-    ).all()
-
-    if request.method == "POST":
-        inv_id = int(request.form.get("inv_id"))
-        qty = int(request.form.get("qty") or 0)
-
-        inv = Inventory.query.get(inv_id)
-        if not inv or qty <= 0:
-            return redirect(url_for("outbound"))
-
-        if qty > inv.qty:
-            qty = inv.qty  # 在庫以上は出荷させない
-
-        inv.qty -= qty
-
-        tran = StockTransaction(
-            tran_type="OUT",
-            item_code=inv.item_code,
-            location_code=inv.location_code,
-            lot_no=inv.lot_no,
-            manufactured_date=inv.manufactured_date,
-            use_by_date=inv.use_by_date,
-            qty=qty,
+# ============================================================
+# 入庫管理（棚番選択＋ロット自動採番）
+# ============================================================
+@app.route("/receipts", methods=["GET", "POST"])
+def receipts():
+    if request.method == "GET":
+        return render_template(
+            "receipts.html",
+            purchases=purchases,
+            suppliers=suppliers,
+            items=items,
+            locations=locations
         )
-        db.session.add(tran)
 
-        if inv.qty == 0:
-            db.session.delete(inv)
+    po_no = request.form.get("po_no")
+    location_code = request.form.get("location_code")
+    qty = int(request.form.get("qty"))
 
-        db.session.commit()
-        return redirect(url_for("index"))
+    po = next(p for p in purchases if p["po_no"] == po_no)
+    item_code = po["item_code"]
 
-    return render_template_string(
-        layout + """
-{% block content %}
-<h2>出荷（ロット単位）</h2>
-<form method="post">
-  <table>
-    <tr>
-      <th>選択</th>
-      <th>品目コード</th>
-      <th>棚番</th>
-      <th>ロット番号</th>
-      <th>製造日</th>
-      <th>使用期限</th>
-      <th>在庫数量</th>
-      <th>出荷数量</th>
-    </tr>
-    {% for inv in inventories %}
-    <tr>
-      <td><input type="radio" name="inv_id" value="{{ inv.id }}"></td>
-      <td>{{ inv.item_code }}</td>
-      <td>{{ inv.location_code }}</td>
-      <td>{{ inv.lot_no }}</td>
-      <td>{{ inv.manufactured_date }}</td>
-      <td>{{ inv.use_by_date }}</td>
-      <td style="text-align:right">{{ inv.qty }}</td>
-      <td><input type="number" name="qty" min="1" max="{{ inv.qty }}"></td>
-    </tr>
-    {% endfor %}
-  </table>
-  <br>
-  <button type="submit">出荷登録</button>
-</form>
-{% endblock %}
-""",
-        inventories=inventories,
+    # 新ロット番号
+    lot_no = next_lot_no(item_code)
+
+    item_type = items[item_code]["type"]
+    if item_type == "RM":
+        stock = stock_H
+    elif item_type == "SFG":
+        stock = stock_K
+    else:
+        stock = stock_Y
+
+    if location_code not in stock[item_code]:
+        stock[item_code][location_code] = []
+
+    stock[item_code][location_code].append({
+        "lot": lot_no,
+        "qty": qty,
+        "order_no": po.get("order_no")
+    })
+
+    po["qty"] -= qty
+
+    return f"{item_code} を {location_code} に {qty} 入庫しました（ロット: {lot_no}）"
+
+# ============================================================
+# 在庫一覧
+# ============================================================
+@app.route("/stocks")
+def stocks():
+    return render_template(
+        "stocks.html",
+        stock_H=stock_H,
+        stock_K=stock_K,
+        stock_Y=stock_Y,
+        locations=locations,
+        items=items
     )
 
+# ============================================================
+# 出荷管理
+# ============================================================
+@app.route("/shipping", methods=["GET", "POST"])
+def shipping():
+    merged_stock = {**stock_H, **stock_K, **stock_Y}
 
-@app.route("/stocktake", methods=["GET", "POST"])
-def stocktake():
-    inventories = Inventory.query.order_by(
-        Inventory.item_code, Inventory.location_code, Inventory.lot_no
-    ).all()
+    if request.method == "GET":
+        return render_template(
+            "shipping.html",
+            items=items,
+            stock=merged_stock,
+            locations=locations,
+            selected_item=None,
+            selected_location=None
+        )
 
-    if request.method == "POST":
-        for inv in inventories:
-            field_name = f"qty_{inv.id}"
-            new_qty_str = request.form.get(field_name)
-            if new_qty_str is None:
-                continue
-            try:
-                new_qty = int(new_qty_str)
-            except ValueError:
-                continue
+    action = request.form.get("action")
+    item_code = request.form.get("item_code")
+    location_code = request.form.get("location_code")
 
-            diff = new_qty - inv.qty
-            if diff == 0:
-                continue
+    if not action:
+        return render_template(
+            "shipping.html",
+            items=items,
+            stock=merged_stock,
+            locations=locations,
+            selected_item=item_code,
+            selected_location=location_code
+        )
 
-            inv.qty = new_qty
+    lot_no = request.form.get("lot_no")
+    qty = int(request.form.get("qty"))
 
-            tran = StockTransaction(
-                tran_type="ADJ",
-                item_code=inv.item_code,
-                location_code=inv.location_code,
-                lot_no=inv.lot_no,
-                manufactured_date=inv.manufactured_date,
-                use_by_date=inv.use_by_date,
-                qty=diff,
-            )
-            db.session.add(tran)
+    item_type = items[item_code]["type"]
+    if item_type == "RM":
+        stock = stock_H
+    elif item_type == "SFG":
+        stock = stock_K
+    else:
+        stock = stock_Y
 
-            if inv.qty == 0:
-                db.session.delete(inv)
+    lots = stock[item_code][location_code]
 
-        db.session.commit()
-        return redirect(url_for("index"))
+    for lot in lots:
+        if lot["lot"] == lot_no:
+            if lot["qty"] < qty:
+                return f"出荷数量がロット在庫を超えています（在庫: {lot['qty']}）"
 
-    return render_template_string(
-        layout + """
-{% block content %}
-<h2>棚卸（ロット別数量調整）</h2>
-<form method="post">
-  <table>
-    <tr>
-      <th>品目コード</th>
-      <th>棚番</th>
-      <th>ロット番号</th>
-      <th>製造日</th>
-      <th>使用期限</th>
-      <th>現在数量</th>
-      <th>棚卸数量</th>
-    </tr>
-    {% for inv in inventories %}
-    <tr>
-      <td>{{ inv.item_code }}</td>
-      <td>{{ inv.location_code }}</td>
-      <td>{{ inv.lot_no }}</td>
-      <td>{{ inv.manufactured_date }}</td>
-      <td>{{ inv.use_by_date }}</td>
-      <td style="text-align:right">{{ inv.qty }}</td>
-      <td><input type="number" name="qty_{{ inv.id }}" min="0" value="{{ inv.qty }}"></td>
-    </tr>
-    {% endfor %}
-  </table>
-  <br>
-  <button type="submit">棚卸確定</button>
-</form>
-{% endblock %}
-""",
-        inventories=inventories,
-    )
+            lot["qty"] -= qty
 
+            if lot["qty"] == 0:
+                lots.remove(lot)
 
-@app.route("/lots")
-def lot_view():
-    """
-    ロット別在庫照会
-    """
-    inventories = Inventory.query.order_by(
-        Inventory.item_code, Inventory.lot_no, Inventory.location_code
-    ).all()
-    today = datetime.today().strftime("%Y%m%d")
-    return render_template_string(
-        layout + """
-{% block content %}
-<h2>ロット別在庫照会</h2>
-<table>
-  <tr>
-    <th>品目コード</th>
-    <th>ロット番号</th>
-    <th>製造日</th>
-    <th>使用期限</th>
-    <th>棚番</th>
-    <th>数量</th>
-  </tr>
-  {% for inv in inventories %}
-    {% set cls = "" %}
-    {% if inv.use_by_date < today %}
-      {% set cls = "danger" %}
-    {% elif inv.use_by_date <= today %}
-      {% set cls = "warn" %}
-    {% endif %}
-    <tr class="{{ cls }}">
-      <td>{{ inv.item_code }}</td>
-      <td>{{ inv.lot_no }}</td>
-      <td>{{ inv.manufactured_date }}</td>
-      <td>{{ inv.use_by_date }}</td>
-      <td>{{ inv.location_code }}</td>
-      <td style="text-align:right">{{ inv.qty }}</td>
-    </tr>
-  {% endfor %}
-</table>
-<p>※赤：使用期限超過、黄：期限接近（簡易判定）</p>
-{% endblock %}
-""",
-        inventories=inventories,
-        today=today,
-    )
+            sales_data.append({
+                "item_code": item_code,
+                "lot": lot_no,
+                "qty": qty,
+                "location": location_code,
+                "order_no": lot["order_no"],
+                "date": datetime.now().strftime("%Y-%m-%d")
+            })
 
+            return f"{item_code} / ロット {lot_no} を {location_code} から {qty} 出荷しました"
 
-if __name__ == "__main__":
-    import os
-    port = int(os.environ.get("PORT", 5000))
-    app.run(host="0.0.0.0", port=port)
+    return "ロットが見つかりません"
+
+# ============================================================
+# 製造実績（棚番に入庫）
+# ============================================================
+@app.route("/production", methods=["GET", "POST"])
+def production():
+    if request.method == "GET":
+        return render_template(
+            "production.html",
+            orders=orders,
+            items=items,
+            locations=locations
+        )
+
+    order_no = request.form.get("order_no")
+    item_code = request.form.get("item_code")
+    qty = int(request.form.get("qty"))
+    location_code = request.form.get("location_code")
+
+    # 新ロット番号
+    lot_no = next_lot_no(item_code)
+
+    item_type = items[item_code]["type"]
+    if item_type == "RM":
+        stock = stock_H
+    elif item_type == "SFG":
+        stock = stock_K
+    else:
+        stock = stock_Y
+
+    if location_code not in stock[item_code]:
+        stock[item_code][location_code] = []
+
+    stock[item_code][location_code].append({
+        "lot": lot_no,
+        "qty": qty,
+        "order_no": order_no
+    })
+
+    return f"製造実績を登録しました：{item_code} / {qty} / ロット {lot_no} / 棚番 {location_code} / 受注 {order_no}"
+
+# ============================================================
+# 製造実績一覧
+# ============================================================
+@app.route("/production_list")
+def production_list():
+    production_records = []
+
+    for item_code, shelves in stock_H.items():
+        for loc, lots in shelves.items():
+            for lot in lots:
+                production_records.append({
+                    "item_code": item_code,
+                    "item_name": items[item_code]["name"],
+                    "location": loc,
+                    "lot": lot["lot"],
+                    "qty": lot["qty"],
+                    "order_no": lot["order_no"]
+                })
+
+    for item_code, shelves in stock_K.items():
+        for loc, lots in shelves.items():
+            for lot in lots:
+                production_records.append({
+                    "item_code": item_code,
+                    "item_name": items[item_code]["name"],
+                    "location": loc,
+                    "lot": lot["lot"],
+                    "qty": lot["qty"],
+                    "order_no": lot["order_no"]
+                })
+
+    for item_code, shelves in stock_Y.items():
+        for loc, lots in shelves.items():
+            for lot in lots:
+                production_records.append({
+                    "item_code": item_code,
+                    "item_name": items[item_code]["name"],
+                    "location": loc,
+                    "lot": lot["lot"],
+                    "qty": lot["qty"],
+                    "order_no": lot["order_no"]
+                })
+
