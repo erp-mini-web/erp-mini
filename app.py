@@ -211,6 +211,11 @@ def masters_menu():
 # ============================================================
 @app.route("/receipts", methods=["GET", "POST"])
 def receipts():
+    # 入庫履歴が無ければ初期化
+    global receives
+    if "receives" not in globals():
+        receives = []
+
     selected_po = None
     po_qty = 0
     received_qty = 0
