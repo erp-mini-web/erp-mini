@@ -12,18 +12,18 @@
 
 <form method="POST">
     <label>仕入先：</label>
-    <select name="supplier" required>
+    <select name="supplier" required onchange="this.form.submit()">
         {% for code, sup in suppliers.items() %}
-        <option value="{{ code }}">{{ code }} ({{ sup.name }})</option>
+        <option value="{{ code }}" {% if code == selected_supplier %}selected{% endif %}>
+            {{ code }} ({{ sup.name }})
+        </option>
         {% endfor %}
     </select><br><br>
 
     <label>品目：</label>
     <select name="item_code" required>
-        {% for code, item in items.items() %}
-            {% if code in purchase_items %}
-            <option value="{{ code }}">{{ code }} ({{ item.name }})</option>
-            {% endif %}
+        {% for code in suppliers[selected_supplier].items %}
+            <option value="{{ code }}">{{ code }} ({{ items[code].name }})</option>
         {% endfor %}
     </select><br><br>
 
