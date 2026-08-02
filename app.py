@@ -281,30 +281,29 @@ def shipping():
     else:
         stock = stock_Y
 
-    lots = stock[item_code][location_code]
+lots = stock[item_code][location_code]
 
-    for lot in lots:
-        if lot["lot"] == lot_no:
-            if lot["qty"] < qty:
-                return f"出荷数量がロット在庫を超えています（在庫: {lot['qty']}）"
+for lot in lots:
+    if lot["lot"] == lot_no:
 
-            lot["qty"] -= qty
+        before_qty = lot["qty"]
+        diff_qty = actual_qty - before_qty
 
-            if lot["qty"] == 0:
-                lots.remove(lot)
+        inventory_diff.append({
+            "date": datetime.now().strftime("%Y-%m-%d"),
+            "item_code": item_code,
+            "item_name": items[item_code]["name"],
+            "location": location_code,
+            "lot": lot_no,
+            "before": before_qty,
+            "after": actual_qty,
+            "diff": diff_qty
+        })
 
-            sales_data.append({
-                "item_code": item_code,
-                "lot": lot_no,
-                "qty": qty,
-                "location": location_code,
-                "order_no": lot["order_no"],
-                "date": datetime.now().strftime("%Y-%m-%d")
-            })
+        lot["qty"] = actual_qty
+        return f"棚卸完了：{item_code} / ロット {lot_no} / 棚番 {location_code} を {actual_qty} に更新しました"
 
-            return f"{item_code} / ロット {lot_no} を {location_code} から {qty} 出荷しました"
-
-    return "ロットが見つかりません"
+return "ロットが見つかりません"
 
 # ============================================================
 # 製造実績（棚番に入庫）
