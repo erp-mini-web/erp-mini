@@ -414,6 +414,52 @@ def shipping_list():
     return render_template("shipping_list.html", shipping_records=shipping_records)
 
 # ============================================================
+# ロットトレース（NEW）
+# ============================================================
+@app.route("/lot_trace", methods=["GET", "POST"])
+def lot_trace():
+    if request.method == "GET":
+        return render_template("lot_trace.html", result=None)
+
+    lot_no = request.form.get("lot_no")
+
+    stock_results = []
+    shipping_results = []
+
+    # 在庫側（H / K / Y 全部）
+    for stock_group in [stock_H, stock_K, stock_Y]:
+        for item_code, shelves in stock_group.items():
+            for loc, lots in shelves.items():
+                for lot in lots:
+                    if lot["lot"] == lot_no:
+                        stock_results.append({
+                            "item_code": item_code,
+                            "item_name": items[item_code]["name"],
+                            "location": loc,
+                            "qty": lot["qty"],
+                            "order_no": lot["order_no"]
+                        })
+
+    # 出荷側
+    for rec in sales_data:
+        if rec["lot"] == lot_no:
+            shipping_results.append({
+                "date": rec["date"],
+                "item_code": rec["item_code"],
+                "item_name": items[rec["item_code"]]["name"],
+                "qty": rec["qty"],
+                "location": rec["location"],
+                "order_no": rec["order_no"]
+            })
+
+    result = {
+        "stock": stock_results,
+        "shipping": shipping_results
+    }
+
+    return render_template("lot_trace.html", result=result)
+
+# ============================================================
 # 棚卸（棚番別棚卸入力）
 # ============================================================
 @app.route("/inventory", methods=["GET", "POST"])
