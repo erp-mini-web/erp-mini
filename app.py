@@ -423,7 +423,7 @@ def orders_menu():
         "due": due
     })
 
-    return f"受注登録完了：{order_no} / {customer} / {destination} / {item_code} / {qty} / 納期 {due}"
+    return redirect("/")
 
 # ============================================================
 # 棚卸（棚番別棚卸入力）
