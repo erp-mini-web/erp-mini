@@ -653,6 +653,63 @@ def stocks():
     )
 
 # ============================================================
+# 棚番移動（NEW）
+# ============================================================
+@app.route("/move", methods=["GET", "POST"])
+def move():
+    merged_stock = {**stock_H, **stock_K, **stock_Y}
+
+    if request.method == "GET":
+        return render_template(
+            "move.html",
+            items=items,
+            locations=locations,
+            stock=merged_stock
+        )
+
+    item_code = request.form.get("item_code")
+    from_loc = request.form.get("from_location")
+    to_loc = request.form.get("to_location")
+    lot_no = request.form.get("lot_no")
+    qty = int(request.form.get("qty"))
+
+    # H/K/Y のどの在庫か
+    item_type = items[item_code]["type"]
+    if item_type == "RM":
+        stock = stock_H
+    elif item_type == "SFG":
+        stock = stock_K
+    else:
+        stock = stock_Y
+
+    # 移動元ロット検索
+    lots = stock[item_code].get(from_loc, [])
+    target_lot = next((l for l in lots if l["lot"] == lot_no), None)
+
+    if not target_lot:
+        return f"移動元にロット {lot_no} がありません"
+
+    if target_lot["qty"] < qty:
+        return f"移動数量がロット在庫を超えています（在庫: {target_lot['qty']}）"
+
+    # 移動元から減算
+    target_lot["qty"] -= qty
+    if target_lot["qty"] == 0:
+        lots.remove(target_lot)
+
+    # 移動先へ加算
+    if to_loc not in stock[item_code]:
+        stock[item_code][to_loc] = []
+
+    stock[item_code][to_loc].append({
+        "lot": lot_no,
+        "qty": qty,
+        "order_no": target_lot.get("order_no")
+    })
+
+    return f"{item_code} / ロット {lot_no} を {from_loc} → {to_loc} に {qty} 移動しました"
+
+# ============================================================
 # 棚卸（棚番別棚卸入力）
 # ============================================================
 @app.route("/inventory", methods=["GET", "POST"])
