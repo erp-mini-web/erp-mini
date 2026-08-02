@@ -30,7 +30,12 @@ items = {
     "H002": {"name": "原糸H002", "unit": "m", "type": "RM"},
     "H003": {"name": "原糸H003", "unit": "m", "type": "RM"},
     "H004": {"name": "原糸H004", "unit": "m", "type": "RM"},
-    "H005": {"name": "原糸H005", "unit": "m", "type": "RM"}
+    "H005": {"name": "原糸H005", "unit": "m", "type": "RM"},
+
+    "A4": {"name": "A4用紙", "unit": "枚", "type": "RM"},
+    "A3": {"name": "A3用紙", "unit": "枚", "type": "RM"},
+    "RING1": {"name": "リング小", "unit": "個", "type": "RM"},
+    "RING2": {"name": "リング大", "unit": "個", "type": "RM"}
 }
 
 # ============================================================
