@@ -381,6 +381,18 @@ def shipping():
     return "ロットが見つかりません"
 
 # ============================================================
+# 出荷実績一覧
+# ============================================================
+@app.route("/shipping_list")
+def shipping_list():
+    return render_template(
+        "shipping_list.html",
+        sales_data=sales_data,
+        items=items,
+        locations=locations
+    )
+
+# ============================================================
 # 製造実績（棚番に入庫）
 # ============================================================
 @app.route("/production", methods=["GET", "POST"])
@@ -466,6 +478,59 @@ def production_list():
                 })
 
     return render_template("production_list.html", production_records=production_records)
+
+# ============================================================
+# ロットトレース
+# ============================================================
+@app.route("/trace", methods=["GET", "POST"])
+def trace():
+    if request.method == "GET":
+        return render_template("trace.html")
+
+    lot_no = request.form.get("lot_no")
+
+    results = []
+
+    # H系
+    for item_code, shelves in stock_H.items():
+        for loc, lots in shelves.items():
+            for lot in lots:
+                if lot["lot"] == lot_no:
+                    results.append({
+                        "item_code": item_code,
+                        "item_name": items[item_code]["name"],
+                        "location": loc,
+                        "qty": lot["qty"],
+                        "order_no": lot["order_no"]
+                    })
+
+    # K系
+    for item_code, shelves in stock_K.items():
+        for loc, lots in shelves.items():
+            for lot in lots:
+                if lot["lot"] == lot_no:
+                    results.append({
+                        "item_code": item_code,
+                        "item_name": items[item_code]["name"],
+                        "location": loc,
+                        "qty": lot["qty"],
+                        "order_no": lot["order_no"]
+                    })
+
+    # Y系
+    for item_code, shelves in stock_Y.items():
+        for loc, lots in shelves.items():
+            for lot in lots:
+                if lot["lot"] == lot_no:
+                    results.append({
+                        "item_code": item_code,
+                        "item_name": items[item_code]["name"],
+                        "location": loc,
+                        "qty": lot["qty"],
+                        "order_no": lot["order_no"]
+                    })
+
+    return render_template("trace.html", results=results, lot_no=lot_no)
 
 # ============================================================
 # 受注登録（NEW）
@@ -654,6 +719,18 @@ def inventory():
             return f"棚卸完了：{item_code} / ロット {lot_no} / 棚番 {location_code} を {actual_qty} に更新しました"
 
     return "ロットが見つかりません"
+
+# ============================================================
+# 棚卸再一覧
+# ============================================================
+@app.route("/inventory_list")
+def inventory_list():
+    return render_template(
+        "inventory_list.html",
+        inventory_diff=inventory_diff,
+        items=items,
+        locations=locations
+    )
 
 # ============================================================
 # Render起動
