@@ -211,6 +211,7 @@ def masters_menu():
 # ============================================================
 @app.route("/receipts", methods=["GET", "POST"])
 def receipts():
+    # 入庫履歴が無ければ初期化
     global receives
     if "receives" not in globals():
         receives = []
@@ -224,13 +225,13 @@ def receipts():
     remaining_qty = 0
 
     # ------------------------------------------------------------
-    # ① 発注番号選択だけの POST
+    # ① 発注番号選択だけの POST（do_receive が無い）
     # ------------------------------------------------------------
     if request.method == "POST" and "do_receive" not in request.form:
         selected_po = request.form.get("po_no")
 
     # ------------------------------------------------------------
-    # ② 入庫登録処理
+    # ② 入庫登録処理（do_receive がある）
     # ------------------------------------------------------------
     if request.method == "POST" and "do_receive" in request.form:
         po_no = request.form.get("po_no")
