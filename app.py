@@ -207,54 +207,89 @@ def masters_menu():
     )
 
 # ============================================================
-# 入庫管理（棚番選択＋ロット自動採番）
+# 入庫管理（発注数量・入庫済み数量・残り数量・単価・入荷場所）
 # ============================================================
 @app.route("/receipts", methods=["GET", "POST"])
 def receipts():
-    if request.method == "GET":
-        return render_template(
-            "receipts.html",
-            purchases=purchases,
-            suppliers=suppliers,
-            items=items,
-            locations=locations
-        )
+    selected_po = None
+    po_qty = 0
+    received_qty = 0
+    remaining_qty = 0
 
-    po_no = request.form.get("po_no")
-    location_code = request.form.get("location_code")
-    qty = int(request.form.get("qty"))
+    if request.method == "POST":
+        # 発注番号選択だけの場合（入庫登録ではない）
+        if "do_receive" not in request.form:
+            selected_po = request.form.get("po_no")
 
-    # 発注情報を取得
-    po = next(p for p in purchases if p["po_no"] == po_no)
-    item_code = po["item_code"]
+        else:
+            # 入庫登録処理
+            po_no = request.form.get("po_no")
+            qty = int(request.form.get("qty"))
+            lot = request.form.get("lot")
+            location = request.form.get("location")
+            unit_price = int(request.form.get("unit_price") or 0)
 
-    # ロット番号採番
-    lot_no = next_lot_no(item_code)
+            # 発注情報取得
+            po = next(p for p in purchases if p["po_no"] == po_no)
+            item_code = po["item_code"]
 
-    # 品目タイプで H/K/Y を振り分け
-    item_type = items[item_code]["type"]
-    if item_type == "RM":
-        stock = stock_H
-    elif item_type == "SFG":
-        stock = stock_K
-    else:
-        stock = stock_Y
+            # ロット番号採番
+            lot_no = next_lot_no(item_code)
 
-    # 棚番にロット配列が無ければ作る
-    if location_code not in stock[item_code]:
-        stock[item_code][location_code] = []
+            # 品目タイプで H/K/Y を振り分け
+            item_type = items[item_code]["type"]
+            if item_type == "RM":
+                stock = stock_H
+            elif item_type == "SFG":
+                stock = stock_K
+            else:
+                stock = stock_Y
 
-    # ロット追加
-    stock[item_code][location_code].append({
-        "lot": lot_no,
-        "qty": qty,
-        "order_no": po.get("order_no")
-    })
+            # 棚番にロット配列が無ければ作る
+            if location not in stock[item_code]:
+                stock[item_code][location] = []
 
-    # 発注残を減らす
-    po["qty"] -= qty
+            # ロット追加（単価も保存）
+            stock[item_code][location].append({
+                "lot": lot_no,
+                "qty": qty,
+                "unit_price": unit_price,
+                "order_no": po.get("order_no")
+            })
 
-    return redirect("/")
+            # 発注残を減らす
+            po["qty"] -= qty
+
+            # 入庫履歴にも追加
+            receives.append({
+                "po_no": po_no,
+                "qty": qty,
+                "lot": lot_no,
+                "location": location,
+                "unit_price": unit_price,
+                "date": datetime.now().strftime("%Y-%m-%d")
+            })
+
+            # ★ 入庫登録後はメニューへ戻る（ブラウザ戻る事故防止）
+            return redirect("/")
+
+    # GET または POST（発注番号選択時）
+    if selected_po:
+        po = next((p for p in purchases if p["po_no"] == selected_po), None)
+        if po:
+            po_qty = po["qty"]
+            received_qty = sum(r["qty"] for r in receives if r["po_no"] == selected_po)
+            remaining_qty = po_qty - received_qty
+
+    return render_template(
+        "receipts.html",
+        purchases=purchases,
+        receives=receives,
+        selected_po=selected_po,
+        po_qty=po_qty,
+        received_qty=received_qty,
+        remaining_qty=remaining_qty
+    )
 
 # ============================================================
 # 在庫一覧（棚番 × ロット × 数量 × 受注番号）
