@@ -1,20 +1,86 @@
-<h2>在庫管理</h2>
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>棚番別在庫一覧</title>
+</head>
+<body>
 
-<h3>在庫一覧</h3>
-<table border="1">
-    <tr>
-        <th>品目</th>
-        <th>ロット</th>
-        <th>棚番</th>
-        <th>数量</th>
-    </tr>
-    <tr>
-        <td>K001</td>
-        <td>20260802-001</td>
-        <td>H001</td>
-        <td>100m</td>
-    </tr>
-</table>
+<p><a href="/">メニューへ戻る</a></p>
 
-<h3>在庫移動</h3>
-<p>品目・ロットを指定して棚番間で数量を移動する画面をここに作っていく。</p>
+<h2>棚番別 在庫一覧</h2>
+
+<!-- 原糸（H系） -->
+<h3>原糸（H系）</h3>
+{% for item_code, shelves in stock_H.items() %}
+    <h4>{{ item_code }} ({{ items[item_code].name }})</h4>
+    <table border="1">
+        <tr>
+            <th>棚番</th>
+            <th>ロット</th>
+            <th>数量</th>
+            <th>受注番号</th>
+        </tr>
+        {% for loc, lots in shelves.items() %}
+            {% for lot in lots %}
+            <tr>
+                <td>{{ loc }} ({{ locations[loc].desc }})</td>
+                <td>{{ lot.lot }}</td>
+                <td>{{ lot.qty }}</td>
+                <td>{{ lot.order_no }}</td>
+            </tr>
+            {% endfor %}
+        {% endfor %}
+    </table>
+{% endfor %}
+
+<!-- 織物（K系） -->
+<h3>織物（K系）</h3>
+{% for item_code, shelves in stock_K.items() %}
+    <h4>{{ item_code }} ({{ items[item_code].name }})</h4>
+    <table border="1">
+        <tr>
+            <th>棚番</th>
+            <th>ロット</th>
+            <th>数量</th>
+            <th>受注番号</th>
+        </tr>
+        {% for loc, lots in shelves.items() %}
+            {% for lot in lots %}
+            <tr>
+                <td>{{ loc }} ({{ locations[loc].desc }})</td>
+                <td>{{ lot.lot }}</td>
+                <td>{{ lot.qty }}</td>
+                <td>{{ lot.order_no }}</td>
+            </tr>
+            {% endfor %}
+        {% endfor %}
+    </table>
+{% endfor %}
+
+<!-- 製品（Y系） -->
+<h3>製品（Y系）</h3>
+{% for item_code, shelves in stock_Y.items() %}
+    <h4>{{ item_code }} ({{ items[item_code].name }})</h4>
+    <table border="1">
+        <tr>
+            <th>棚番</th>
+            <th>ロット</th>
+            <th>数量</th>
+            <th>受注番号</th>
+        </tr>
+        {% for loc, lots in shelves.items() %}
+            {% for lot in lots %}
+            <tr>
+                <td>{{ loc }} ({{ locations[loc].desc }})</td>
+                <td>{{ lot.lot }}</td>
+                <td>{{ lot.qty }}</td>
+                <td>{{ lot.order_no }}</td>
+            </tr>
+            {% endfor %}
+        {% endfor %}
+    </table>
+{% endfor %}
+
+</body>
+</html>
