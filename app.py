@@ -156,35 +156,21 @@ stock_Y = {code: {} for code in items if items[code]["type"] == "FG"}
 sales_data = []
 orders = []
 order_counter = 1
+lot_counter = {}
 
-# ============================================================
-# ロット番号（新方式：LOT-品目コード-YYYYMMDD-001）
-# ============================================================
-lot_counter = {}  # { item_code: { date: seq } }
-
-def next_lot_no(item_code):
-    today = datetime.now().strftime("%Y%m%d")
-
-    if item_code not in lot_counter:
-        lot_counter[item_code] = {}
-
-    if today not in lot_counter[item_code]:
-        lot_counter[item_code][today] = 1
-
-    seq = lot_counter[item_code][today]
-    lot_counter[item_code][today] += 1
-
-    return f"LOT-{item_code}-{today}-{seq:03d}"
-
-# ============================================================
-# 受注番号
-# ============================================================
 def next_order_no():
     global order_counter
     order_no = f"T{order_counter:05d}"
     order_counter += 1
     return order_no
 
+def next_lot_no():
+    today = datetime.now().strftime("%Y%m%d")
+    if today not in lot_counter:
+        lot_counter[today] = 1
+    lot_no = f"{today}-{lot_counter[today]:03d}"
+    lot_counter[today] += 1
+    return lot_no
 # ============================================================
 # メニュー
 # ============================================================
@@ -224,12 +210,14 @@ def receipts():
     location_code = request.form.get("location_code")
     qty = int(request.form.get("qty"))
 
+    # 発注情報を取得
     po = next(p for p in purchases if p["po_no"] == po_no)
     item_code = po["item_code"]
 
-    # 新ロット番号
-    lot_no = next_lot_no(item_code)
+    # ロット番号採番
+    lot_no = next_lot_no()
 
+    # 品目タイプで H/K/Y を振り分け
     item_type = items[item_code]["type"]
     if item_type == "RM":
         stock = stock_H
@@ -238,21 +226,24 @@ def receipts():
     else:
         stock = stock_Y
 
+    # 棚番にロット配列が無ければ作る
     if location_code not in stock[item_code]:
         stock[item_code][location_code] = []
 
+    # ロット追加
     stock[item_code][location_code].append({
         "lot": lot_no,
         "qty": qty,
         "order_no": po.get("order_no")
     })
 
+    # 発注残を減らす
     po["qty"] -= qty
 
     return f"{item_code} を {location_code} に {qty} 入庫しました（ロット: {lot_no}）"
 
 # ============================================================
-# 在庫一覧
+# 在庫一覧（棚番 × ロット × 数量 × 受注番号）
 # ============================================================
 @app.route("/stocks")
 def stocks():
@@ -264,9 +255,8 @@ def stocks():
         locations=locations,
         items=items
     )
-
 # ============================================================
-# 出荷管理
+# 出荷管理（棚番からピッキング）
 # ============================================================
 @app.route("/shipping", methods=["GET", "POST"])
 def shipping():
@@ -350,8 +340,7 @@ def production():
     qty = int(request.form.get("qty"))
     location_code = request.form.get("location_code")
 
-    # 新ロット番号
-    lot_no = next_lot_no(item_code)
+    lot_no = next_lot_no()
 
     item_type = items[item_code]["type"]
     if item_type == "RM":
@@ -373,12 +362,13 @@ def production():
     return f"製造実績を登録しました：{item_code} / {qty} / ロット {lot_no} / 棚番 {location_code} / 受注 {order_no}"
 
 # ============================================================
-# 製造実績一覧
+# 製造実績一覧（NEW）
 # ============================================================
 @app.route("/production_list")
 def production_list():
     production_records = []
 
+    # H系
     for item_code, shelves in stock_H.items():
         for loc, lots in shelves.items():
             for lot in lots:
@@ -391,6 +381,7 @@ def production_list():
                     "order_no": lot["order_no"]
                 })
 
+    # K系
     for item_code, shelves in stock_K.items():
         for loc, lots in shelves.items():
             for lot in lots:
@@ -403,6 +394,7 @@ def production_list():
                     "order_no": lot["order_no"]
                 })
 
+    # Y系
     for item_code, shelves in stock_Y.items():
         for loc, lots in shelves.items():
             for lot in lots:
@@ -415,3 +407,174 @@ def production_list():
                     "order_no": lot["order_no"]
                 })
 
+    return render_template("production_list.html", production_records=production_records)
+
+# ============================================================
+# 受注登録（NEW）
+# ============================================================
+@app.route("/orders", methods=["GET", "POST"])
+def orders_menu():
+    if request.method == "GET":
+        return render_template(
+            "orders.html",
+            customers=customers,
+            items=items,
+            selected_customer=list(customers.keys())[0]
+        )
+
+    customer = request.form.get("customer")
+    destination = request.form.get("destination")
+    item_code = request.form.get("item_code")
+    qty = int(request.form.get("qty"))
+    due = request.form.get("due")
+
+    order_no = next_order_no()
+
+    orders.append({
+        "order_no": order_no,
+        "customer": customer,
+        "destination": destination,
+        "item_code": item_code,
+        "qty": qty,
+        "due": due
+    })
+
+    return redirect("/")
+
+# ============================================================
+# 受注一覧（NEW）
+# ============================================================
+@app.route("/orders_list")
+def orders_list():
+    return render_template(
+        "orders_list.html",
+        orders=orders,
+        items=items
+    )
+
+# ============================================================
+# 購買対象品目（NEW）
+# ============================================================
+purchase_items = ["H001", "H002", "H003", "H004", "H005",
+                  "A4", "A3", "RING1", "RING2"]
+
+# ============================================================
+# 仕入先マスタ（NEW）
+# ============================================================
+suppliers = {
+    "SUP001": {"name": "A商事", "items": ["H001", "H002", "H003"]},
+    "SUP002": {"name": "B物産", "items": ["H004", "H005"]},
+    "SUP003": {"name": "C紙業", "items": ["A4", "A3"]},
+    "SUP004": {"name": "Dリング工業", "items": ["RING1", "RING2"]},
+}
+
+# ============================================================
+# 発注登録（NEW）
+# ============================================================
+purchases = []
+
+def next_po_no():
+    return f"P{len(purchases)+1:05d}"
+
+@app.route("/purchase", methods=["GET", "POST"])
+def purchase():
+    if request.method == "GET":
+        return render_template(
+            "purchase.html",
+            suppliers=suppliers,
+            items=items,
+            purchase_items=purchase_items
+        )
+
+    supplier = request.form.get("supplier")
+    item_code = request.form.get("item_code")
+    qty = int(request.form.get("qty"))
+    due = request.form.get("due")
+
+    po_no = next_po_no()
+
+    purchases.append({
+        "po_no": po_no,
+        "supplier": supplier,
+        "item_code": item_code,
+        "qty": qty,
+        "due": due
+    })
+
+    return redirect("/")
+
+# ============================================================
+# 棚卸（棚番別棚卸入力）
+# ============================================================
+@app.route("/inventory", methods=["GET", "POST"])
+def inventory():
+    merged_stock = {**stock_H, **stock_K, **stock_Y}
+
+    if request.method == "GET":
+        return render_template(
+            "inventory.html",
+            locations=locations,
+            items=items,
+            stock=merged_stock,
+            selected_location=None,
+            selected_item=None
+        )
+
+    action = request.form.get("action")
+    location_code = request.form.get("location_code")
+    item_code = request.form.get("item_code")
+
+    # 画面再表示（棚番・品目選択時）
+    if not action:
+        return render_template(
+            "inventory.html",
+            locations=locations,
+            items=items,
+            stock=merged_stock,
+            selected_location=location_code,
+            selected_item=item_code
+        )
+
+    # 棚卸登録処理
+    lot_no = request.form.get("lot_no")
+    actual_qty = int(request.form.get("actual_qty"))
+
+    item_type = items[item_code]["type"]
+    if item_type == "RM":
+        stock = stock_H
+    elif item_type == "SFG":
+        stock = stock_K
+    else:
+        stock = stock_Y
+
+    lots = stock[item_code][location_code]
+
+    for lot in lots:
+        if lot["lot"] == lot_no:
+
+            before_qty = lot["qty"]
+            diff_qty = actual_qty - before_qty
+
+            inventory_diff.append({
+                "date": datetime.now().strftime("%Y-%m-%d"),
+                "item_code": item_code,
+                "item_name": items[item_code]["name"],
+                "location": location_code,
+                "lot": lot_no,
+                "before": before_qty,
+                "after": actual_qty,
+                "diff": diff_qty
+            })
+
+            lot["qty"] = actual_qty
+            return f"棚卸完了：{item_code} / ロット {lot_no} / 棚番 {location_code} を {actual_qty} に更新しました"
+
+    return "ロットが見つかりません"
+
+# ============================================================
+# Render起動
+# ============================================================
+if __name__ == "__main__":
+    import os
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port)
