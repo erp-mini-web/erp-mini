@@ -31,7 +31,10 @@
 
             {% if remaining_qty > 0 %}
                 <option value="{{ p.po_no }}" {% if selected_po == p.po_no %}selected{% endif %}>
-                    {{ p.po_no }}（残り {{ remaining_qty }}）
+                    {{ p.po_no }} /
+                    {{ suppliers[p.supplier].name }} /
+                    {{ p.item_code }} ({{ items[p.item_code].name }}) /
+                    残り {{ remaining_qty }}
                 </option>
             {% endif %}
         {% endfor %}
@@ -40,6 +43,10 @@
     {% if selected_po %}
         <hr>
 
+        <p><b>品目名：</b> {{ items[selected_item].name }}</p>
+        <p><b>品目コード：</b> {{ selected_item }}</p>
+        <p><b>仕入先：</b> {{ suppliers[selected_supplier].name }}</p>
+
         <p>発注数量：{{ po_qty }}</p>
         <p>入庫済み数量：{{ received_qty }}</p>
         <p>残り数量：{{ remaining_qty }}</p>
@@ -47,8 +54,7 @@
         <label>入庫数量：</label>
         <input type="number" name="qty" min="1" max="{{ remaining_qty }}" required>
 
-        <label>ロット番号：</label>
-        <input type="text" name="lot" required>
+        <!-- ロット番号は自動採番なので入力不要 -->
 
         <label>入荷場所：</label>
         <select name="location">
