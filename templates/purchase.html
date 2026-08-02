@@ -22,7 +22,7 @@
 
     <label>品目：</label>
     <select name="item_code" required>
-        {% for code in suppliers[selected_supplier].items %}
+        {% for code in suppliers[selected_supplier]["items"] %}
             <option value="{{ code }}">{{ code }} ({{ items[code].name }})</option>
         {% endfor %}
     </select><br><br>
