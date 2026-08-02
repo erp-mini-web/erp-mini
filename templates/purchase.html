@@ -1,17 +1,40 @@
-<h2>購入（原材料の補充）</h2>
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>発注登録</title>
+</head>
+<body>
 
-<form method="post">
-  <label>原材料コード：</label>
-  <select name="material">
-    <option value="H001">H001</option>
-    <option value="H002">H002</option>
-    <option value="H003">H003</option>
-  </select>
+<p><a href="/">メニューへ戻る</a></p>
 
-  <label>数量：</label>
-  <input type="number" name="quantity" min="1">
+<h2>発注登録</h2>
 
-  <button type="submit">購入する</button>
+<form method="POST">
+    <label>仕入先：</label>
+    <select name="supplier" required>
+        {% for code, sup in suppliers.items() %}
+        <option value="{{ code }}">{{ code }} ({{ sup.name }})</option>
+        {% endfor %}
+    </select><br><br>
+
+    <label>品目：</label>
+    <select name="item_code" required>
+        {% for code, item in items.items() %}
+            {% if code in purchase_items %}
+            <option value="{{ code }}">{{ code }} ({{ item.name }})</option>
+            {% endif %}
+        {% endfor %}
+    </select><br><br>
+
+    <label>数量：</label>
+    <input type="number" name="qty" required><br><br>
+
+    <label>希望納期：</label>
+    <input type="date" name="due" required><br><br>
+
+    <button type="submit">登録</button>
 </form>
 
-<a href="/">メニューに戻る</a>
+</body>
+</html>
