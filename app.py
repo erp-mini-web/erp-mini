@@ -657,7 +657,8 @@ def stocks():
 # ============================================================
 @app.route("/move", methods=["GET", "POST"])
 def move():
-    if request.method == "GET":
+    # ① 画面表示（GET） or ボタン押していない POST は全部ここ
+    if request.method == "GET" or "do_move" not in request.form:
         return render_template(
             "move.html",
             items=items,
@@ -667,7 +668,7 @@ def move():
             stock_Y=stock_Y
         )
 
-    # POST（移動処理）
+    # ② ここからが「移動する」ボタン押下時の処理（POST）
     item_code = request.form.get("item_code")
     from_loc = request.form.get("from_location")
     to_loc = request.form.get("to_location")
