@@ -660,12 +660,14 @@ def move():
     merged_stock = {**stock_H, **stock_K, **stock_Y}
 
     if request.method == "GET":
-        return render_template(
-            "move.html",
-            items=items,
-            locations=locations,
-            stock=merged_stock
-        )
+return render_template(
+    "move.html",
+    items=items,
+    locations=locations,
+    stock_H=stock_H,
+    stock_K=stock_K,
+    stock_Y=stock_Y
+)
 
     item_code = request.form.get("item_code")
     from_loc = request.form.get("from_location")
