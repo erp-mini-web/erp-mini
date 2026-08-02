@@ -3,38 +3,85 @@
 <head>
     <meta charset="UTF-8">
     <title>棚番移動</title>
+
+    <style>
+        body {
+            font-family: "Segoe UI", sans-serif;
+            margin: 40px;
+            background: #f7f7f7;
+            color: #333;
+        }
+
+        h2 {
+            margin-bottom: 20px;
+            font-size: 26px;
+            border-left: 6px solid #4a90e2;
+            padding-left: 10px;
+        }
+
+        label {
+            font-weight: 600;
+        }
+
+        select, input {
+            padding: 8px;
+            margin: 6px 0 16px 0;
+            width: 260px;
+        }
+
+        button {
+            padding: 10px 20px;
+            background: #4a90e2;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background: #357ABD;
+        }
+
+        .msg {
+            margin: 10px 0;
+            color: #d9534f;
+        }
+    </style>
 </head>
 <body>
-    <h2>棚番移動</h2>
 
-    <form method="POST">
+<h2>棚番移動</h2>
 
-        <!-- 品目選択 -->
-        <label>品目コード:</label>
-        <select name="item_code" required onchange="this.form.submit()">
-            <option value="">--選択--</option>
-            {% for code, item in items.items() %}
-                <option value="{{ code }}"
-                    {% if request.form.get('item_code') == code %}selected{% endif %}>
-                    {{ code }} / {{ item.name }}
-                </option>
-            {% endfor %}
-        </select>
-        <br><br>
+<form method="POST">
 
-        {% if request.form.get('item_code') %}
-            {% set item_code = request.form.get('item_code') %}
-            {% set item_type = items[item_code].type %}
-            {% if item_type == "RM" %}
-                {% set stock = stock_H %}
-            {% elif item_type == "SFG" %}
-                {% set stock = stock_K %}
-            {% else %}
-                {% set stock = stock_Y %}
-            {% endif %}
+    <!-- 品目選択 -->
+    <label>品目コード:</label><br>
+    <select name="item_code" required onchange="this.form.submit()">
+        <option value="">--選択--</option>
+        {% for code, item in items.items() %}
+            <option value="{{ code }}"
+                {% if request.form.get('item_code') == code %}selected{% endif %}>
+                {{ code }} / {{ item.name }}
+            </option>
+        {% endfor %}
+    </select>
+    <br>
 
-            <!-- 移動元棚番 -->
-            <label>移動元棚番:</label>
+    {% if request.form.get('item_code') %}
+        {% set item_code = request.form.get('item_code') %}
+        {% set item_type = items[item_code].type %}
+
+        {% if item_type == "RM" %}
+            {% set stock = stock_H %}
+        {% elif item_type == "SFG" %}
+            {% set stock = stock_K %}
+        {% else %}
+            {% set stock = stock_Y %}
+        {% endif %}
+
+        <!-- 移動元棚番 -->
+        {% if stock[item_code] %}
+            <label>移動元棚番:</label><br>
             <select name="from_location" required onchange="this.form.submit()">
                 <option value="">--選択--</option>
                 {% for loc, lots in stock[item_code].items() %}
@@ -44,14 +91,18 @@
                     </option>
                 {% endfor %}
             </select>
-            <br><br>
+        {% else %}
+            <p class="msg">この品目にはまだ在庫がありません。</p>
+        {% endif %}
+        <br>
 
-            {% if request.form.get('from_location') %}
-                {% set from_loc = request.form.get('from_location') %}
-                {% set lots = stock[item_code][from_loc] %}
+        {% if request.form.get('from_location') %}
+            {% set from_loc = request.form.get('from_location') %}
+            {% set lots = stock[item_code][from_loc] %}
 
-                <!-- ロット選択 -->
-                <label>ロット番号:</label>
+            <!-- ロット選択 -->
+            {% if lots %}
+                <label>ロット番号:</label><br>
                 <select name="lot_no" required>
                     <option value="">--選択--</option>
                     {% for lot in lots %}
@@ -60,29 +111,33 @@
                         </option>
                     {% endfor %}
                 </select>
-                <br><br>
-
-                <!-- 移動数量 -->
-                <label>移動数量:</label>
-                <input type="number" name="qty" min="1" required>
-                <br><br>
-
-                <!-- 移動先棚番 -->
-                <label>移動先棚番:</label>
-                <select name="to_location" required>
-                    <option value="">--選択--</option>
-                    {% for loc, info in locations.items() %}
-                        <option value="{{ loc }}">{{ loc }} / {{ info.desc }}</option>
-                    {% endfor %}
-                </select>
-                <br><br>
-
-                <button type="submit">移動する</button>
+            {% else %}
+                <p class="msg">この棚番にはロットがありません。</p>
             {% endif %}
-        {% endif %}
-    </form>
+            <br>
 
-    <br>
-    <a href="/">メニューに戻る</a>
+            <!-- 移動数量 -->
+            <label>移動数量:</label><br>
+            <input type="number" name="qty" min="1" required>
+            <br>
+
+            <!-- 移動先棚番 -->
+            <label>移動先棚番:</label><br>
+            <select name="to_location" required>
+                <option value="">--選択--</option>
+                {% for loc, info in locations.items() %}
+                    <option value="{{ loc }}">{{ loc }} / {{ info.desc }}</option>
+                {% endfor %}
+            </select>
+            <br>
+
+            <button type="submit">移動する</button>
+        {% endif %}
+    {% endif %}
+</form>
+
+<br>
+<a href="/" style="text-decoration:none;">← メニューに戻る</a>
+
 </body>
 </html>
