@@ -217,27 +217,33 @@ def receipts():
         receives = []
 
     selected_po = None
+    selected_item = None
+    selected_supplier = None
     po_qty = 0
     received_qty = 0
     remaining_qty = 0
 
-    # 発注番号選択だけの POST
+    # ------------------------------------------------------------
+    # ① 発注番号を選択しただけの POST（do_receive が無い）
+    # ------------------------------------------------------------
     if request.method == "POST" and "do_receive" not in request.form:
         selected_po = request.form.get("po_no")
 
-    # 入庫登録処理
+    # ------------------------------------------------------------
+    # ② 入庫登録処理（do_receive がある）
+    # ------------------------------------------------------------
     if request.method == "POST" and "do_receive" in request.form:
         po_no = request.form.get("po_no")
         qty = int(request.form.get("qty"))
-        lot = request.form.get("lot")
         location = request.form.get("location")
         unit_price = int(request.form.get("unit_price") or 0)
 
         # 発注情報
         po = next(p for p in purchases if p["po_no"] == po_no)
         item_code = po["item_code"]
+        supplier_code = po["supplier"]
 
-        # ロット採番
+        # ロット番号自動採番
         lot_no = next_lot_no(item_code)
 
         # H/K/Y のどの在庫に入れるか
@@ -253,7 +259,7 @@ def receipts():
         if location not in stock[item_code]:
             stock[item_code][location] = []
 
-        # ロット追加
+        # ロット追加（単価も保存）
         stock[item_code][location].append({
             "lot": lot_no,
             "qty": qty,
@@ -261,10 +267,10 @@ def receipts():
             "order_no": po.get("order_no")
         })
 
-        # 発注残を減らす
+        # 発注残を減らす（直樹の ERP-mini の仕様）
         po["qty"] -= qty
 
-        # 入庫履歴
+        # 入庫履歴にも追加
         receives.append({
             "po_no": po_no,
             "qty": qty,
@@ -274,21 +280,32 @@ def receipts():
             "date": datetime.now().strftime("%Y-%m-%d")
         })
 
+        # 入庫登録後はメニューへ戻る（ブラウザ戻る事故防止）
         return redirect("/")
 
-    # 発注番号選択時の表示
+    # ------------------------------------------------------------
+    # ③ 発注番号選択時の表示処理
+    # ------------------------------------------------------------
     if selected_po:
         po = next((p for p in purchases if p["po_no"] == selected_po), None)
         if po:
+            selected_item = po["item_code"]
+            selected_supplier = po["supplier"]
+
             po_qty = po["qty"]
             received_qty = sum(r["qty"] for r in receives if r["po_no"] == selected_po)
             remaining_qty = po_qty - received_qty
 
+    # ------------------------------------------------------------
+    # ④ 画面描画
+    # ------------------------------------------------------------
     return render_template(
         "receipts.html",
         purchases=purchases,
         receives=receives,
         selected_po=selected_po,
+        selected_item=selected_item,
+        selected_supplier=selected_supplier,
         po_qty=po_qty,
         received_qty=received_qty,
         remaining_qty=remaining_qty
