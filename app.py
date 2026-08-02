@@ -294,7 +294,7 @@ def receipts():
 
             po_qty = po["qty"]
             received_qty = sum(r["qty"] for r in receives if r["po_no"] == selected_po)
-            remaining_qty = po_qty - received_qty
+            remaining_qty = po_qty
 
     # ------------------------------------------------------------
     # ④ 画面描画
