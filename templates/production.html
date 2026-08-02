@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>製造実績入力</title>
+</head>
+<body>
+
+<p><a href="/">メニューへ戻る</a></p>
+
+<h2>製造実績入力</h2>
+
+<form method="POST">
+
+    <label>受注番号：</label>
+    <select name="order_no" required>
+        {% for o in orders %}
+            <option value="{{ o.order_no }}">{{ o.order_no }}（{{ o.customer }}）</option>
+        {% endfor %}
+    </select>
+    <br><br>
+
+    <label>製造品目：</label>
+    <select name="item_code" required>
+        {% for code, item in items.items() %}
+            <option value="{{ code }}">{{ code }} ({{ item.name }})</option>
+        {% endfor %}
+    </select>
+    <br><br>
+
+    <label>数量：</label>
+    <input type="number" name="qty" required>
+    <br><br>
+
+    <label>棚番：</label>
+    <select name="location_code" required>
+        {% for code, loc in locations.items() %}
+            <option value="{{ code }}">{{ code }} ({{ loc.desc }})</option>
+        {% endfor %}
+    </select>
+    <br><br>
+
+    <button type="submit">製造実績を登録する</button>
+
+</form>
+
+</body>
+</html>
