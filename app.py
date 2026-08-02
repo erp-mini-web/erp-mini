@@ -574,6 +574,20 @@ def purchase():
     )
 
 # ============================================================
+# 在庫一覧（棚番 × ロット × 数量 × 受注番号）
+# ============================================================
+@app.route("/stocks")
+def stocks():
+    return render_template(
+        "stocks.html",
+        stock_H=stock_H,
+        stock_K=stock_K,
+        stock_Y=stock_Y,
+        locations=locations,
+        items=items
+    )
+
+# ============================================================
 # 棚卸（棚番別棚卸入力）
 # ============================================================
 @app.route("/inventory", methods=["GET", "POST"])
