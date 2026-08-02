@@ -156,7 +156,9 @@ stock_Y = {code: {} for code in items if items[code]["type"] == "FG"}
 sales_data = []
 orders = []
 order_counter = 1
-lot_counter = {}
+
+# ★ここだけ新方式に置き換える（lot_counter は1回だけ）
+lot_counter = {}  # { item_code: { date: seq } }
 
 def next_order_no():
     global order_counter
@@ -164,13 +166,20 @@ def next_order_no():
     order_counter += 1
     return order_no
 
-def next_lot_no():
+def next_lot_no(item_code):
     today = datetime.now().strftime("%Y%m%d")
-    if today not in lot_counter:
-        lot_counter[today] = 1
-    lot_no = f"{today}-{lot_counter[today]:03d}"
-    lot_counter[today] += 1
-    return lot_no
+
+    if item_code not in lot_counter:
+        lot_counter[item_code] = {}
+
+    if today not in lot_counter[item_code]:
+        lot_counter[item_code][today] = 1
+
+    seq = lot_counter[item_code][today]
+    lot_counter[item_code][today] += 1
+
+    return f"LOT-{item_code}-{today}-{seq:03d}"
+
 # ============================================================
 # メニュー
 # ============================================================
