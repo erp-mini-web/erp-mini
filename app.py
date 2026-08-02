@@ -198,15 +198,26 @@ def masters_menu():
 @app.route("/receipts", methods=["GET", "POST"])
 def receipts():
     if request.method == "GET":
-        return render_template("receipts.html", items=items, locations=locations)
+        return render_template(
+            "receipts.html",
+            purchases=purchases,
+            suppliers=suppliers,
+            items=items,
+            locations=locations
+        )
 
-    item_code = request.form.get("item_code")
+    po_no = request.form.get("po_no")
     location_code = request.form.get("location_code")
     qty = int(request.form.get("qty"))
-    order_no = request.form.get("order_no") or None
 
+    # 発注情報を取得
+    po = next(p for p in purchases if p["po_no"] == po_no)
+    item_code = po["item_code"]
+
+    # ロット番号採番
     lot_no = next_lot_no()
 
+    # 品目タイプで H/K/Y を振り分け
     item_type = items[item_code]["type"]
     if item_type == "RM":
         stock = stock_H
@@ -215,16 +226,21 @@ def receipts():
     else:
         stock = stock_Y
 
+    # 棚番にロット配列が無ければ作る
     if location_code not in stock[item_code]:
         stock[item_code][location_code] = []
 
+    # ロット追加
     stock[item_code][location_code].append({
         "lot": lot_no,
         "qty": qty,
-        "order_no": order_no
+        "order_no": po.get("order_no")
     })
 
-    return f"{item_code} を {location_code} に {qty} 入庫しました（ロット: {lot_no}, 受注: {order_no}）"
+    # 発注残を減らす
+    po["qty"] -= qty
+
+    return f"{item_code} を {location_code} に {qty} 入庫しました（ロット: {lot_no}）"
 
 # ============================================================
 # 在庫一覧（棚番 × ロット × 数量 × 受注番号）
