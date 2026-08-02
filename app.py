@@ -113,47 +113,28 @@ customers = {
 }
 
 # ============================================================
-# ④ 棚番マスタ（LH / LK / LY 全登録）
+# ④ 棚番マスタ（LH / LK / LY）
 # ============================================================
 locations = {
-    # ============================
     # LH（原糸・撚糸・H系）
-    # ============================
-
     "LH001": {"desc": "原糸置き場 001"},
     "LH002": {"desc": "原糸→撚糸設置１ 002"},
     "LH003": {"desc": "原糸→撚糸設置２ 003"},
     "LH004": {"desc": "撚糸置き場 004"},
     "LH005": {"desc": "撚糸→織物設置１ 005"},
     "LH006": {"desc": "撚糸→織物設置２ 006"},
-
-    # 新規追加（H搬入・H出荷）
     "LH009": {"desc": "H搬入品置き場"},
     "LH010": {"desc": "H出荷品置き場"},
-
-    # LH501〜LH599（立体倉庫）
     **{f"LH{str(i).zfill(3)}": {"desc": f"立体倉庫 {str(i).zfill(3)}"} for i in range(501, 600)},
 
-
-    # ============================
     # LK（織物・K系）
-    # ============================
-
     "LK001": {"desc": "K1工場"},
     "LK002": {"desc": "K2工場"},
-
-    # 新規追加（K搬入・K出荷）
     "LK009": {"desc": "K搬入品置き場"},
     "LK010": {"desc": "K出荷品置き場"},
-
-    # LK501〜LK599（K倉庫）
     **{f"LK{str(i).zfill(3)}": {"desc": f"K倉庫 {str(i).zfill(3)}"} for i in range(501, 600)},
 
-
-    # ============================
     # LY（製品・Y系）
-    # ============================
-
     "LY001": {"desc": "湿式"},
     "LY002": {"desc": "乾式"},
     "LY003": {"desc": "乾式スリッター"},
@@ -162,15 +143,10 @@ locations = {
     "LY006": {"desc": "乾式特殊"},
     "LY007": {"desc": "Y倉庫一次置き場"},
     "LY008": {"desc": "Y倉庫簡易加工場"},
-
-    # 新規追加（Y搬入・Y出荷）
     "LY009": {"desc": "Y搬入品置き場"},
     "LY010": {"desc": "Y出荷品置き場"},
-
-    # LY501〜LY599（Y倉庫）
     **{f"LY{str(i).zfill(3)}": {"desc": f"Y倉庫 {str(i).zfill(3)}"} for i in range(501, 600)}
 }
-
 
 # ============================================================
 # ⑤ 単価マスタ
@@ -202,24 +178,19 @@ prices = {
 }
 
 # ============================================================
-# 在庫データ（既存）
+# ⑥ 棚番別在庫構造（初期在庫ゼロ）
 # ============================================================
-stock_Y = {code: 0 for code in items if items[code]["type"] == "FG"}
+stock_H = {code: {} for code in items if items[code]["type"] == "RM"}
+stock_K = {code: {} for code in items if items[code]["type"] == "SFG"}
+stock_Y = {code: {} for code in items if items[code]["type"] == "FG"}
 
-stock_K = {
-    "K001": [100, 80, 55],
-    "K002": [100, 60],
-    "K003": [100],
-    "K004": [90, 30],
-    "K005": [100]
-}
-
-stock_H = {"H001": 100, "H002": 100, "H003": 100}
-
+# 売上データ・受注データ
 sales_data = []
-
 orders = []
 order_counter = 1
+
+# ロット採番用
+lot_counter = {}
 
 def next_order_no():
     global order_counter
@@ -227,6 +198,13 @@ def next_order_no():
     order_counter += 1
     return order_no
 
+def next_lot_no():
+    today = datetime.now().strftime("%Y%m%d")
+    if today not in lot_counter:
+        lot_counter[today] = 1
+    lot_no = f"{today}-{lot_counter[today]:03d}"
+    lot_counter[today] += 1
+    return lot_no
 
 # ============================================================
 # メニュー
@@ -235,9 +213,8 @@ def next_order_no():
 def menu():
     return render_template("menu.html")
 
-
 # ============================================================
-# マスタ管理（今回修正した部分）
+# マスタ管理
 # ============================================================
 @app.route("/masters")
 def masters_menu():
@@ -250,39 +227,66 @@ def masters_menu():
         prices=prices
     )
 
+# ============================================================
+# 入庫管理（棚番選択＋ロット自動採番＋受注番号任意）
+# ============================================================
+@app.route("/receipts", methods=["GET", "POST"])
+def receipts():
+    if request.method == "GET":
+        return render_template("receipts.html", items=items, locations=locations)
+
+    item_code = request.form.get("item_code")
+    location_code = request.form.get("location_code")
+    qty = int(request.form.get("qty"))
+    order_no = request.form.get("order_no") or None
+
+    lot_no = next_lot_no()
+
+    item_type = items[item_code]["type"]
+    if item_type == "RM":
+        stock = stock_H
+    elif item_type == "SFG":
+        stock = stock_K
+    else:
+        stock = stock_Y
+
+    if location_code not in stock[item_code]:
+        stock[item_code][location_code] = []
+
+    stock[item_code][location_code].append({
+        "lot": lot_no,
+        "qty": qty,
+        "order_no": order_no
+    })
+
+    return f"{item_code} を {location_code} に {qty} 入庫しました（ロット: {lot_no}, 受注: {order_no}）"
 
 # ============================================================
-# 既存の画面（stock / shipment / sales / order）
+# 在庫表示（暫定：棚番別在庫をそのまま出す用）
 # ============================================================
-@app.route("/stock")
-def stock():
-    return render_template("stock.html", stock_Y=stock_Y, stock_K=stock_K, stock_H=stock_H)
+@app.route("/stocks")
+def stocks():
+    return render_template(
+        "stocks.html",
+        stock_H=stock_H,
+        stock_K=stock_K,
+        stock_Y=stock_Y,
+        locations=locations,
+        items=items
+    )
 
-
-@app.route("/shipment", methods=["GET", "POST"])
-def shipment():
-    if request.method == "POST":
-        product = request.form.get("product")
-        quantity = int(request.form.get("quantity"))
-
-        if stock_Y.get(product, 0) >= quantity:
-            stock_Y[product] -= quantity
-            sales_data.append({"product": product, "quantity": quantity})
-            return f"{product} を {quantity} 出荷しました"
-
-        return f"{product} の在庫が不足しています"
-
-    return render_template("shipment.html", stock_Y=stock_Y)
-
-
+# ============================================================
+# 売上・出荷など（既存ロジックは今後棚番対応に差し替え予定）
+# ============================================================
 @app.route("/sales")
 def sales():
     return render_template("sales.html", sales_data=sales_data)
 
+# 受注関連（既存の order / order_list はそのまま）
+@app.route("/order_list")
+def order_list():
+    return render_template("order_list.html", orders=orders)
 
-# ============================================================
-# 受注（既存ロジックそのまま）
-# ============================================================
 @app.route("/order", methods=["GET", "POST"])
 def order():
     if request.method == "GET":
@@ -315,15 +319,11 @@ def order():
     product_code = request.form.get("product_code")
     quantity_raw = request.form.get("quantity")
 
-    # --- 原材料表示 ---
     if action == "show_material":
         quantity = int(quantity_raw)
-
         manufacture_qty = ((quantity + 9) // 10) * 10
         lot_count = manufacture_qty // 10
-
         recipe = bom.get(product_code, {})
-
         need = {}
         for k_code, base_amount in recipe.items():
             need[k_code] = base_amount * lot_count
@@ -342,25 +342,20 @@ def order():
             quantity=quantity,
             manufacture_qty=manufacture_qty,
             need=need,
-            stock_K=stock_K,
+            stock_K={},  # 棚番別在庫に変えたのでここは後で対応
             details=details
         )
 
-    # --- 明細追加 ---
     if action == "add_detail":
         quantity = int(quantity_raw)
-
         manufacture_qty = ((quantity + 9) // 10) * 10
         lot_count = manufacture_qty // 10
-
         recipe = bom.get(product_code, {})
-
         need = {}
         roll_selection = {}
-
         for k_code, base_amount in recipe.items():
             need[k_code] = base_amount * lot_count
-            roll_selection[k_code] = int(request.form.get(f"roll_{k_code}"))
+            roll_selection[k_code] = 0  # 棚番別在庫対応は後で
 
         details.append({
             "product_code": product_code,
@@ -384,23 +379,8 @@ def order():
             details=details
         )
 
-    # --- 受注確定 ---
     if action == "submit_order":
         order_no = next_order_no()
-
-        for d in details:
-            for k_code, need_amount in d["need"].items():
-                selected_roll = d["roll_selection"][k_code]
-                rolls = stock_K[k_code]
-
-                idx = rolls.index(selected_roll)
-                rolls[idx] -= need_amount
-                if rolls[idx] <= 0:
-                    rolls.pop(idx)
-
-            surplus = d["manufacture_qty"] - d["quantity"]
-            stock_Y[d["product_code"]] += surplus
-
         order_data = {
             "order_no": order_no,
             "order_date": datetime.now().strftime("%Y-%m-%d"),
@@ -413,18 +393,10 @@ def order():
             "shipping_method": shipping_method,
             "details": details
         }
-
         orders.append(order_data)
-
         return f"受注 {order_no} を登録しました（明細数：{len(details)}）"
 
     return "不明な操作です"
-
-
-@app.route("/order_list")
-def order_list():
-    return render_template("order_list.html", orders=orders)
-
 
 # ============================================================
 # Render起動
