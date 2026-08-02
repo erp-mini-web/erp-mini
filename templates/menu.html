@@ -27,25 +27,34 @@
             padding-bottom: 4px;
         }
 
-        a {
+        /* ▼ 分類ごとのボタンを横並びにする */
+        .menu-group {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            gap: 10px;
+            margin-top: 10px;
+            margin-bottom: 20px;
+        }
+
+        .menu-btn {
             display: block;
-            padding: 8px 12px;
-            margin: 6px 0;
+            padding: 12px;
             background: white;
             border-radius: 6px;
             text-decoration: none;
             color: #333;
             border: 1px solid #e0e0e0;
+            text-align: center;
             transition: 0.15s;
+            font-weight: 500;
         }
 
-        a:hover {
+        .menu-btn:hover {
             background: #4a90e2;
             color: white;
             border-color: #4a90e2;
         }
 
-        /* スマホ対応 */
         @media (max-width: 600px) {
             body {
                 margin: 20px;
@@ -59,33 +68,41 @@
 
 <!-- マスタ -->
 <h3>マスタ管理</h3>
-<a href="/masters">マスタ一覧</a>
+<div class="menu-group">
+    <a class="menu-btn" href="/masters">マスタ一覧</a>
+</div>
 
 <!-- 購買 -->
 <h3>購買</h3>
-<a href="/purchase">発注登録</a>
-<a href="/receipts">入庫登録</a>
-<a href="/stocks">在庫一覧</a>
+<div class="menu-group">
+    <a class="menu-btn" href="/purchase">発注登録</a>
+    <a class="menu-btn" href="/receipts">入庫登録</a>
+    <a class="menu-btn" href="/stocks">在庫一覧</a>
+</div>
 
 <!-- 受注・製造・出荷 -->
 <h3>生産・出荷</h3>
-<a href="/orders">受注登録</a>
-<a href="/orders_list">受注一覧</a>
-
-<a href="/production">製造実績登録</a>
-<a href="/production_list">製造実績一覧</a>
-
-<a href="/shipping">出荷管理</a>
-<a href="/shipping_list">出荷実績一覧</a>
+<div class="menu-group">
+    <a class="menu-btn" href="/orders">受注登録</a>
+    <a class="menu-btn" href="/orders_list">受注一覧</a>
+    <a class="menu-btn" href="/production">製造実績登録</a>
+    <a class="menu-btn" href="/production_list">製造実績一覧</a>
+    <a class="menu-btn" href="/shipping">出荷管理</a>
+    <a class="menu-btn" href="/shipping_list">出荷実績一覧</a>
+</div>
 
 <!-- トレース -->
 <h3>トレーサビリティ</h3>
-<a href="/lot_trace">ロットトレース</a>
+<div class="menu-group">
+    <a class="menu-btn" href="/lot_trace">ロットトレース</a>
+</div>
 
 <!-- 棚卸 -->
 <h3>棚卸</h3>
-<a href="/inventory">棚卸</a>
-<a href="/inventory_diff">棚卸差異一覧</a>
+<div class="menu-group">
+    <a class="menu-btn" href="/inventory">棚卸</a>
+    <a class="menu-btn" href="/inventory_diff">棚卸差異一覧</a>
+</div>
 
 </body>
 </html>
