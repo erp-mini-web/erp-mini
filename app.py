@@ -482,10 +482,10 @@ def production_list():
 # ============================================================
 # ロットトレース
 # ============================================================
-@app.route("/trace", methods=["GET", "POST"])
-def trace():
+@app.route("/lot_trace", methods=["GET", "POST"])
+def lot_trace():
     if request.method == "GET":
-        return render_template("trace.html")
+        return render_template("lot_trace.html")
 
     lot_no = request.form.get("lot_no")
 
@@ -530,7 +530,7 @@ def trace():
                         "order_no": lot["order_no"]
                     })
 
-    return render_template("trace.html", results=results, lot_no=lot_no)
+    return render_template("lot_trace.html", results=results, lot_no=lot_no)
 
 # ============================================================
 # 受注登録（NEW）
@@ -721,12 +721,12 @@ def inventory():
     return "ロットが見つかりません"
 
 # ============================================================
-# 棚卸再一覧
+# 棚卸差異一覧
 # ============================================================
-@app.route("/inventory_list")
-def inventory_list():
+@app.route("/inventory_diff")
+def inventory_diff_list():
     return render_template(
-        "inventory_list.html",
+        "inventory_diff.html",
         inventory_diff=inventory_diff,
         items=items,
         locations=locations
