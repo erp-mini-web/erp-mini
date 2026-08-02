@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>棚卸差異一覧</title>
+</head>
+<body>
+
+<p><a href="/">メニューへ戻る</a></p>
+
+<h2>棚卸差異一覧</h2>
+
+<table border="1">
+    <tr>
+        <th>棚卸日</th>
+        <th>品目コード</th>
+        <th>品目名</th>
+        <th>棚番</th>
+        <th>ロット</th>
+        <th>棚卸前数量</th>
+        <th>棚卸後数量</th>
+        <th>差異</th>
+    </tr>
+
+    {% for r in diffs %}
+    <tr>
+        <td>{{ r.date }}</td>
+        <td>{{ r.item_code }}</td>
+        <td>{{ r.item_name }}</td>
+        <td>{{ r.location }}</td>
+        <td>{{ r.lot }}</td>
+        <td>{{ r.before }}</td>
+        <td>{{ r.after }}</td>
+        <td>{{ r.diff }}</td>
+    </tr>
+    {% endfor %}
+</table>
+
+</body>
+</html>
