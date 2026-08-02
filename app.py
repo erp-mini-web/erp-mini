@@ -392,6 +392,27 @@ def production_list():
                 })
 
     return render_template("production_list.html", production_records=production_records)
+
+# ============================================================
+# 出荷実績一覧（NEW）
+# ============================================================
+@app.route("/shipping_list")
+def shipping_list():
+    shipping_records = []
+
+    for rec in sales_data:
+        shipping_records.append({
+            "date": rec["date"],
+            "item_code": rec["item_code"],
+            "item_name": items[rec["item_code"]]["name"],
+            "lot": rec["lot"],
+            "qty": rec["qty"],
+            "location": rec["location"],
+            "order_no": rec["order_no"]
+        })
+
+    return render_template("shipping_list.html", shipping_records=shipping_records)
+
 # ============================================================
 # 棚卸（棚番別棚卸入力）
 # ============================================================
