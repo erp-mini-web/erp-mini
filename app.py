@@ -249,7 +249,7 @@ def receipts():
     # 発注残を減らす
     po["qty"] -= qty
 
-    return f"{item_code} を {location_code} に {qty} 入庫しました（ロット: {lot_no}）"
+    return redirect("/")
 
 # ============================================================
 # 在庫一覧（棚番 × ロット × 数量 × 受注番号）
@@ -368,7 +368,7 @@ def production():
         "order_no": order_no
     })
 
-    return f"製造実績を登録しました：{item_code} / {qty} / ロット {lot_no} / 棚番 {location_code} / 受注 {order_no}"
+    return redirect("/")
 
 # ============================================================
 # 製造実績一覧（NEW）
