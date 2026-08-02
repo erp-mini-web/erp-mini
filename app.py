@@ -490,8 +490,8 @@ def purchase():
     if request.method == "POST":
         supplier = request.form.get("supplier")
 
-        # 仕入先を選び直しただけ（品目リスト更新）
-        if "item_code" not in request.form:
+        # 登録ボタンが押されていない → 仕入先選び直し
+        if "do_register" not in request.form:
             return render_template(
                 "purchase.html",
                 suppliers=suppliers,
