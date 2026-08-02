@@ -27,7 +27,7 @@
             padding-bottom: 4px;
         }
 
-        /* ▼ 分類ごとのボタンを横並びにする */
+        /* ▼ ボタンを横並びにする（幅は統一） */
         .menu-group {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
@@ -66,12 +66,6 @@
 
 <h2>メニュー</h2>
 
-<!-- マスタ -->
-<h3>マスタ管理</h3>
-<div class="menu-group">
-    <a class="menu-btn" href="/masters">マスタ一覧</a>
-</div>
-
 <!-- 購買 -->
 <h3>購買</h3>
 <div class="menu-group">
@@ -80,7 +74,7 @@
     <a class="menu-btn" href="/stocks">在庫一覧</a>
 </div>
 
-<!-- 受注・製造・出荷 -->
+<!-- 生産・出荷 -->
 <h3>生産・出荷</h3>
 <div class="menu-group">
     <a class="menu-btn" href="/orders">受注登録</a>
@@ -91,10 +85,16 @@
     <a class="menu-btn" href="/shipping_list">出荷実績一覧</a>
 </div>
 
-<!-- トレース -->
+<!-- トレーサビリティ -->
 <h3>トレーサビリティ</h3>
 <div class="menu-group">
     <a class="menu-btn" href="/lot_trace">ロットトレース</a>
+</div>
+
+<!-- マスタ管理（トレーサビリティのすぐ下に配置） -->
+<h3>マスタ管理</h3>
+<div class="menu-group">
+    <a class="menu-btn" href="/masters">マスタ一覧</a>
 </div>
 
 <!-- 棚卸 -->
