@@ -215,7 +215,7 @@ def receipts():
     if "receives" not in globals():
         receives = []
 
-    # 初期値（GET時に必要）
+    # 初期値（None にするのが重要）
     selected_po = None
     selected_item = None
     selected_supplier = None
@@ -224,13 +224,15 @@ def receipts():
     remaining_qty = 0
 
     # ------------------------------------------------------------
-    # ① 発注番号選択だけの POST（do_receive が無い）
+    # ① 発注番号選択だけの POST
     # ------------------------------------------------------------
     if request.method == "POST" and "do_receive" not in request.form:
         selected_po = request.form.get("po_no")
+        if selected_po == "":
+            selected_po = None
 
     # ------------------------------------------------------------
-    # ② 入庫登録処理（do_receive がある）
+    # ② 入庫登録処理
     # ------------------------------------------------------------
     if request.method == "POST" and "do_receive" in request.form:
         po_no = request.form.get("po_no")
@@ -241,7 +243,6 @@ def receipts():
         # 発注情報
         po = next(p for p in purchases if p["po_no"] == po_no)
         item_code = po["item_code"]
-        supplier_code = po["supplier"]
 
         # ロット番号自動採番
         lot_no = next_lot_no(item_code)
@@ -296,7 +297,7 @@ def receipts():
             remaining_qty = po_qty - received_qty
 
     # ------------------------------------------------------------
-    # ④ 画面描画（GET時も必ず selected_item などを渡す）
+    # ④ 画面描画
     # ------------------------------------------------------------
     return render_template(
         "receipts.html",
@@ -310,19 +311,6 @@ def receipts():
         remaining_qty=remaining_qty
     )
 
-# ============================================================
-# 在庫一覧（棚番 × ロット × 数量 × 受注番号）
-# ============================================================
-@app.route("/stocks")
-def stocks():
-    return render_template(
-        "stocks.html",
-        stock_H=stock_H,
-        stock_K=stock_K,
-        stock_Y=stock_Y,
-        locations=locations,
-        items=items
-    )
 # ============================================================
 # 出荷管理（棚番からピッキング）
 # ============================================================
