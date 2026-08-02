@@ -394,6 +394,17 @@ def production_list():
     return render_template("production_list.html", production_records=production_records)
 
 # ============================================================
+# 受注一覧（NEW）
+# ============================================================
+@app.route("/orders_list")
+def orders_list():
+    return render_template(
+        "orders_list.html",
+        orders=orders,
+        items=items
+    )
+
+# ============================================================
 # 受注登録（NEW）
 # ============================================================
 @app.route("/orders", methods=["GET", "POST"])
