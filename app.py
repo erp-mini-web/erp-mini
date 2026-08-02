@@ -657,18 +657,17 @@ def stocks():
 # ============================================================
 @app.route("/move", methods=["GET", "POST"])
 def move():
-    merged_stock = {**stock_H, **stock_K, **stock_Y}
-
     if request.method == "GET":
-return render_template(
-    "move.html",
-    items=items,
-    locations=locations,
-    stock_H=stock_H,
-    stock_K=stock_K,
-    stock_Y=stock_Y
-)
+        return render_template(
+            "move.html",
+            items=items,
+            locations=locations,
+            stock_H=stock_H,
+            stock_K=stock_K,
+            stock_Y=stock_Y
+        )
 
+    # POST（移動処理）
     item_code = request.form.get("item_code")
     from_loc = request.form.get("from_location")
     to_loc = request.form.get("to_location")
