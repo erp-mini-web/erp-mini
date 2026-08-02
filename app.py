@@ -313,6 +313,45 @@ def shipping():
     return "ロットが見つかりません"
 
 # ============================================================
+# ⑤ 製造実績（棚番に入庫）
+# ============================================================
+@app.route("/production", methods=["GET", "POST"])
+def production():
+    if request.method == "GET":
+        return render_template(
+            "production.html",
+            orders=orders,
+            items=items,
+            locations=locations
+        )
+
+    order_no = request.form.get("order_no")
+    item_code = request.form.get("item_code")
+    qty = int(request.form.get("qty"))
+    location_code = request.form.get("location_code")
+
+    lot_no = next_lot_no()
+
+    item_type = items[item_code]["type"]
+    if item_type == "RM":
+        stock = stock_H
+    elif item_type == "SFG":
+        stock = stock_K
+    else:
+        stock = stock_Y
+
+    if location_code not in stock[item_code]:
+        stock[item_code][location_code] = []
+
+    stock[item_code][location_code].append({
+        "lot": lot_no,
+        "qty": qty,
+        "order_no": order_no
+    })
+
+    return f"製造実績を登録しました：{item_code} / {qty} / ロット {lot_no} / 棚番 {location_code} / 受注 {order_no}"
+
+# ============================================================
 # Render起動
 # ============================================================
 if __name__ == "__main__":
