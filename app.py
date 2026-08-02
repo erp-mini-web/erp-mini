@@ -162,7 +162,7 @@ sales_data = []
 orders = []
 order_counter = 1
 
-# ★ここだけ新方式に置き換える（lot_counter は1回だけ）
+inventory_diff = []
 lot_counter = {}  # { item_code: { date: seq } }
 
 def next_order_no():
