@@ -281,29 +281,30 @@ def shipping():
     else:
         stock = stock_Y
 
-lots = stock[item_code][location_code]
+    lots = stock[item_code][location_code]
 
-for lot in lots:
-    if lot["lot"] == lot_no:
+    for lot in lots:
+        if lot["lot"] == lot_no:
+            if lot["qty"] < qty:
+                return f"出荷数量がロット在庫を超えています（在庫: {lot['qty']}）"
 
-        before_qty = lot["qty"]
-        diff_qty = actual_qty - before_qty
+            lot["qty"] -= qty
 
-        inventory_diff.append({
-            "date": datetime.now().strftime("%Y-%m-%d"),
-            "item_code": item_code,
-            "item_name": items[item_code]["name"],
-            "location": location_code,
-            "lot": lot_no,
-            "before": before_qty,
-            "after": actual_qty,
-            "diff": diff_qty
-        })
+            if lot["qty"] == 0:
+                lots.remove(lot)
 
-        lot["qty"] = actual_qty
-        return f"棚卸完了：{item_code} / ロット {lot_no} / 棚番 {location_code} を {actual_qty} に更新しました"
+            sales_data.append({
+                "item_code": item_code,
+                "lot": lot_no,
+                "qty": qty,
+                "location": location_code,
+                "order_no": lot["order_no"],
+                "date": datetime.now().strftime("%Y-%m-%d")
+            })
 
-return "ロットが見つかりません"
+            return f"{item_code} / ロット {lot_no} を {location_code} から {qty} 出荷しました"
+
+    return "ロットが見つかりません"
 
 # ============================================================
 # 製造実績（棚番に入庫）
@@ -391,73 +392,6 @@ def production_list():
                 })
 
     return render_template("production_list.html", production_records=production_records)
-
-# ============================================================
-# 出荷実績一覧（NEW）
-# ============================================================
-@app.route("/shipping_list")
-def shipping_list():
-    shipping_records = []
-
-    for rec in sales_data:
-        shipping_records.append({
-            "date": rec["date"],
-            "item_code": rec["item_code"],
-            "item_name": items[rec["item_code"]]["name"],
-            "lot": rec["lot"],
-            "qty": rec["qty"],
-            "location": rec["location"],
-            "order_no": rec["order_no"]
-        })
-
-    return render_template("shipping_list.html", shipping_records=shipping_records)
-
-# ============================================================
-# ロットトレース（NEW）
-# ============================================================
-@app.route("/lot_trace", methods=["GET", "POST"])
-def lot_trace():
-    if request.method == "GET":
-        return render_template("lot_trace.html", result=None)
-
-    lot_no = request.form.get("lot_no")
-
-    stock_results = []
-    shipping_results = []
-
-    # 在庫側（H / K / Y 全部）
-    for stock_group in [stock_H, stock_K, stock_Y]:
-        for item_code, shelves in stock_group.items():
-            for loc, lots in shelves.items():
-                for lot in lots:
-                    if lot["lot"] == lot_no:
-                        stock_results.append({
-                            "item_code": item_code,
-                            "item_name": items[item_code]["name"],
-                            "location": loc,
-                            "qty": lot["qty"],
-                            "order_no": lot["order_no"]
-                        })
-
-    # 出荷側
-    for rec in sales_data:
-        if rec["lot"] == lot_no:
-            shipping_results.append({
-                "date": rec["date"],
-                "item_code": rec["item_code"],
-                "item_name": items[rec["item_code"]]["name"],
-                "qty": rec["qty"],
-                "location": rec["location"],
-                "order_no": rec["order_no"]
-            })
-
-    result = {
-        "stock": stock_results,
-        "shipping": shipping_results
-    }
-
-    return render_template("lot_trace.html", result=result)
-
 # ============================================================
 # 棚卸（棚番別棚卸入力）
 # ============================================================
@@ -506,6 +440,21 @@ def inventory():
 
     for lot in lots:
         if lot["lot"] == lot_no:
+
+            before_qty = lot["qty"]
+            diff_qty = actual_qty - before_qty
+
+            inventory_diff.append({
+                "date": datetime.now().strftime("%Y-%m-%d"),
+                "item_code": item_code,
+                "item_name": items[item_code]["name"],
+                "location": location_code,
+                "lot": lot_no,
+                "before": before_qty,
+                "after": actual_qty,
+                "diff": diff_qty
+            })
+
             lot["qty"] = actual_qty
             return f"棚卸完了：{item_code} / ロット {lot_no} / 棚番 {location_code} を {actual_qty} に更新しました"
 
