@@ -224,7 +224,7 @@ def receipts():
     item_code = po["item_code"]
 
     # ロット番号採番
-    lot_no = next_lot_no()
+    lot_no = next_lot_no(item_code)
 
     # 品目タイプで H/K/Y を振り分け
     item_type = items[item_code]["type"]
@@ -349,7 +349,7 @@ def production():
     qty = int(request.form.get("qty"))
     location_code = request.form.get("location_code")
 
-    lot_no = next_lot_no()
+    lot_no = next_lot_no(item_code)
 
     item_type = items[item_code]["type"]
     if item_type == "RM":
