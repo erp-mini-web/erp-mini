@@ -49,9 +49,9 @@
             {% for lot in lots %}
             <tr>
                 <td>{{ loc }} ({{ locations[loc].desc }})</td>
-                <td>{{ lot.lot }}</td>
-                <td>{{ lot.qty }}</td>
-                <td>{{ lot.order_no }}</td>
+                <td>{{ lot["lot"] }}</td>
+                <td>{{ lot["qty"] }}</td>
+                <td>{{ lot["order_no"] }}</td>
             </tr>
             {% endfor %}
         {% endfor %}
@@ -73,9 +73,9 @@
             {% for lot in lots %}
             <tr>
                 <td>{{ loc }} ({{ locations[loc].desc }})</td>
-                <td>{{ lot.lot }}</td>
-                <td>{{ lot.qty }}</td>
-                <td>{{ lot.order_no }}</td>
+                <td>{{ lot["lot"] }}</td>
+                <td>{{ lot["qty"] }}</td>
+                <td>{{ lot["order_no"] }}</td>
             </tr>
             {% endfor %}
         {% endfor %}
