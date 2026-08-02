@@ -308,7 +308,9 @@ def receipts():
         selected_supplier=selected_supplier,
         po_qty=po_qty,
         received_qty=received_qty,
-        remaining_qty=remaining_qty
+        remaining_qty=remaining_qty,
+        items=items,
+        suppliers=suppliers
     )
 
 # ============================================================
