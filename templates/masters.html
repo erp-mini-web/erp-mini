@@ -1,41 +1,106 @@
-<h2>マスタ管理</h2>
+<h2>マスタ管理（erp-mini）</h2>
 
-<h3>品目マスタ</h3>
+<!-- ========================= -->
+<!-- 品目マスタ -->
+<!-- ========================= -->
+<h3>品目マスタ（Item Master）</h3>
 <table border="1">
     <tr>
         <th>品目コード</th>
         <th>品目名</th>
-        <th>標準単価</th>
+        <th>単位</th>
+        <th>区分</th>
     </tr>
+    {% for code, item in items.items() %}
     <tr>
-        <td>K001</td>
-        <td>ケーブル100m</td>
-        <td>1,200円</td>
+        <td>{{ code }}</td>
+        <td>{{ item.name }}</td>
+        <td>{{ item.unit }}</td>
+        <td>{{ item.type }}</td>
     </tr>
+    {% endfor %}
 </table>
 
-<h3>得意先マスタ</h3>
+
+<!-- ========================= -->
+<!-- BOMマスタ（多階層） -->
+<!-- ========================= -->
+<h3>BOMマスタ（多段階構成）</h3>
 <table border="1">
     <tr>
-        <th>得意先コード</th>
-        <th>得意先名</th>
-        <th>住所</th>
+        <th>親品目</th>
+        <th>構成品目（子品目）</th>
     </tr>
+    {% for parent, children in bom.items() %}
     <tr>
-        <td>C001</td>
-        <td>テスト商事</td>
-        <td>兵庫県西宮市</td>
+        <td>{{ parent }}</td>
+        <td>
+            {% for child, qty in children.items() %}
+                {{ child }} : {{ qty }}<br>
+            {% endfor %}
+        </td>
     </tr>
+    {% endfor %}
 </table>
 
-<h3>棚番マスタ</h3>
+
+<!-- ========================= -->
+<!-- 得意先マスタ -->
+<!-- ========================= -->
+<h3>得意先マスタ（Customer Master）</h3>
+<table border="1">
+    <tr>
+        <th>得意先名</th>
+        <th>コード</th>
+        <th>配送先一覧</th>
+    </tr>
+    {% for name, c in customers.items() %}
+    <tr>
+        <td>{{ name }}</td>
+        <td>{{ c.code }}</td>
+        <td>
+            {% for dest, addr in c.destinations.items() %}
+                {{ dest }} : {{ addr }}<br>
+            {% endfor %}
+        </td>
+    </tr>
+    {% endfor %}
+</table>
+
+
+<!-- ========================= -->
+<!-- 棚番マスタ -->
+<!-- ========================= -->
+<h3>棚番マスタ（Location Master）</h3>
 <table border="1">
     <tr>
         <th>棚番コード</th>
         <th>説明</th>
     </tr>
+    {% for code, loc in locations.items() %}
     <tr>
-        <td>H001</td>
-        <td>1階東側棚</td>
+        <td>{{ code }}</td>
+        <td>{{ loc.desc }}</td>
     </tr>
+    {% endfor %}
+</table>
+
+
+<!-- ========================= -->
+<!-- 単価マスタ -->
+<!-- ========================= -->
+<h3>単価マスタ（Price Master）</h3>
+<table border="1">
+    <tr>
+        <th>品目コード</th>
+        <th>原価</th>
+        <th>売価</th>
+    </tr>
+    {% for code, price in prices.items() %}
+    <tr>
+        <td>{{ code }}</td>
+        <td>{{ price.cost }}</td>
+        <td>{{ price.price }}</td>
+    </tr>
+    {% endfor %}
 </table>
