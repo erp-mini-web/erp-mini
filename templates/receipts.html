@@ -1,22 +1,43 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>入庫管理</title>
+</head>
+<body>
+
+<p><a href="/">メニューへ戻る</a></p>
+
 <h2>入庫管理</h2>
 
-<h3>入庫一覧</h3>
-<table border="1">
-    <tr>
-        <th>入庫番号</th>
-        <th>品目</th>
-        <th>数量</th>
-        <th>棚番</th>
-        <th>ロット番号</th>
-    </tr>
-    <tr>
-        <td>RCV00001</td>
-        <td>K001</td>
-        <td>100m</td>
-        <td>H001</td>
-        <td>20260802-001</td>
-    </tr>
-</table>
+<form method="POST">
 
-<h3>入庫登録</h3>
-<p>品目・数量・棚番を入力し、ロット番号を自動採番する入庫登録画面をここに作っていく。</p>
+    <label>品目コード：</label>
+    <select name="item_code">
+        {% for code, item in items.items() %}
+            <option value="{{ code }}">{{ code }} ({{ item.name }})</option>
+        {% endfor %}
+    </select>
+    <br><br>
+
+    <label>棚番：</label>
+    <select name="location_code">
+        {% for code, loc in locations.items() %}
+            <option value="{{ code }}">{{ code }} ({{ loc.desc }})</option>
+        {% endfor %}
+    </select>
+    <br><br>
+
+    <label>数量：</label>
+    <input type="number" name="qty" required>
+    <br><br>
+
+    <label>受注番号（任意）：</label>
+    <input type="text" name="order_no">
+    <br><br>
+
+    <button type="submit">入庫する</button>
+</form>
+
+</body>
+</html>
