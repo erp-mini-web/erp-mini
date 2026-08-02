@@ -709,7 +709,7 @@ def move():
         "order_no": target_lot.get("order_no")
     })
 
-    return f"{item_code} / ロット {lot_no} を {from_loc} → {to_loc} に {qty} 移動しました"
+    return redirect("/")
 
 # ============================================================
 # 棚卸（棚番別棚卸入力）
