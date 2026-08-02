@@ -1,24 +1,64 @@
-<h2>棚卸</h2>
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>棚卸</title>
+</head>
+<body>
 
-<h3>棚卸一覧</h3>
-<table border="1">
-    <tr>
-        <th>棚番</th>
-        <th>品目</th>
-        <th>ロット</th>
-        <th>帳簿数量</th>
-        <th>実棚数量</th>
-        <th>差異</th>
-    </tr>
-    <tr>
-        <td>H001</td>
-        <td>K001</td>
-        <td>20260802-001</td>
-        <td>100m</td>
-        <td>100m</td>
-        <td>0</td>
-    </tr>
-</table>
+<p><a href="/">メニューへ戻る</a></p>
 
-<h3>棚卸入力</h3>
-<p>棚番ごとに実棚数量を入力し、差異を計算する画面をここに作っていく。</p>
+<h2>棚卸入力</h2>
+
+<form method="POST">
+
+    <label>棚番：</label>
+    <select name="location_code" onchange="this.form.submit()">
+        <option value="">選択してください</option>
+        {% for code, loc in locations.items() %}
+            <option value="{{ code }}" {% if code == selected_location %}selected{% endif %}>
+                {{ code }} ({{ loc.desc }})
+            </option>
+        {% endfor %}
+    </select>
+    <br><br>
+
+    {% if selected_location %}
+        <label>品目：</label>
+        <select name="item_code" onchange="this.form.submit()">
+            <option value="">選択してください</option>
+            {% for code, item in items.items() %}
+                {% if code in stock %}
+                    {% if selected_location in stock[code] %}
+                        <option value="{{ code }}" {% if code == selected_item %}selected{% endif %}>
+                            {{ code }} ({{ item.name }})
+                        </option>
+                    {% endif %}
+                {% endif %}
+            {% endfor %}
+        </select>
+        <br><br>
+    {% endif %}
+
+    {% if selected_item %}
+        <label>ロット：</label>
+        <select name="lot_no">
+            {% for lot in stock[selected_item][selected_location] %}
+                <option value="{{ lot.lot }}">
+                    {{ lot.lot }} / 現在庫: {{ lot.qty }} / 受注: {{ lot.order_no }}
+                </option>
+            {% endfor %}
+        </select>
+        <br><br>
+
+        <label>実地数量：</label>
+        <input type="number" name="actual_qty" required>
+        <br><br>
+
+        <button type="submit" name="action" value="submit">棚卸を登録する</button>
+    {% endif %}
+
+</form>
+
+</body>
+</html>
