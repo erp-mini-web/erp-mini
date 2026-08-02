@@ -487,30 +487,43 @@ def next_po_no():
 
 @app.route("/purchase", methods=["GET", "POST"])
 def purchase():
-    if request.method == "GET":
-        return render_template(
-            "purchase.html",
-            suppliers=suppliers,
-            items=items,
-            purchase_items=purchase_items
-        )
+    # POST（仕入先選択 or 発注登録）
+    if request.method == "POST":
+        supplier = request.form.get("supplier")
 
-    supplier = request.form.get("supplier")
-    item_code = request.form.get("item_code")
-    qty = int(request.form.get("qty"))
-    due = request.form.get("due")
+        # 仕入先を選び直しただけ（品目リスト更新）
+        if "item_code" not in request.form:
+            return render_template(
+                "purchase.html",
+                suppliers=suppliers,
+                items=items,
+                selected_supplier=supplier
+            )
 
-    po_no = next_po_no()
+        # 発注登録処理
+        item_code = request.form.get("item_code")
+        qty = int(request.form.get("qty"))
+        due = request.form.get("due")
 
-    purchases.append({
-        "po_no": po_no,
-        "supplier": supplier,
-        "item_code": item_code,
-        "qty": qty,
-        "due": due
-    })
+        po_no = next_po_no()
 
-    return redirect("/")
+        purchases.append({
+            "po_no": po_no,
+            "supplier": supplier,
+            "item_code": item_code,
+            "qty": qty,
+            "due": due
+        })
+
+        return redirect("/")
+
+    # GET（初期表示）
+    return render_template(
+        "purchase.html",
+        suppliers=suppliers,
+        items=items,
+        selected_supplier="SUP001"
+    )
 
 # ============================================================
 # 棚卸（棚番別棚卸入力）
