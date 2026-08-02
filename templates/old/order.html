@@ -1,0 +1,143 @@
+<h2>受注画面（ERP-mini）</h2>
+
+<form method="post">
+
+  <input type="hidden" name="details_data" value='{{ details|tojson }}'>
+
+  <h3>受注ヘッダー</h3>
+
+  <label>入力者：</label>
+  <select name="input_user">
+    <option value="Naoki" {% if input_user == "Naoki" %}selected{% endif %}>Naoki</option>
+    <option value="営業" {% if input_user == "営業" %}selected{% endif %}>営業</option>
+  </select>
+  <br><br>
+
+  <label>お客様コード：</label>
+  <select name="customer">
+    <option value="">選択して</option>
+    {% for name, data in customers.items() %}
+      <option value="{{ name }}" {% if customer == name %}selected{% endif %}>
+        {{ name }}
+      </option>
+    {% endfor %}
+  </select>
+  <br><br>
+
+  {% if customer %}
+    <label>発送先：</label>
+    <select name="destination">
+      {% for dest in customers[customer]["destinations"].keys() %}
+        <option value="{{ dest }}" {% if destination == dest %}selected{% endif %}>
+          {{ dest }}
+        </option>
+      {% endfor %}
+    </select>
+    <br><br>
+  {% endif %}
+
+  {% if customer and destination %}
+    <label>住所：</label>
+    <p>{{ customers[customer]["destinations"][destination] }}</p>
+    <br>
+  {% endif %}
+
+  <label>納期：</label>
+  <input type="date" name="delivery_date" value="{{ delivery_date or '' }}">
+  <br><br>
+
+  <label>配送方法：</label>
+  <select name="shipping_method">
+    <option value="宅配便" {% if shipping_method == "宅配便" %}selected{% endif %}>宅配便</option>
+    <option value="チャーター便" {% if shipping_method == "チャーター便" %}selected{% endif %}>チャーター便</option>
+    <option value="自社便" {% if shipping_method == "自社便" %}selected{% endif %}>自社便</option>
+  </select>
+  <br><br>
+
+  <h3>商品追加</h3>
+
+  <label>商品コード：</label>
+  <select name="product_code">
+    <option value="">選択して</option>
+    {% for code in products %}
+      <option value="{{ code }}" {% if product_code == code %}selected{% endif %}>
+        {{ code }}
+      </option>
+    {% endfor %}
+  </select>
+
+  <label>数量：</label>
+  <input type="number" name="quantity" min="1" value="{{ quantity or '' }}">
+
+  <button type="submit" name="action" value="show_material">
+    原材料を表示
+  </button>
+
+  {% if need %}
+    <h3>必要な中間材とロール選択</h3>
+
+    {% for k_code, amount in need.items() %}
+      {% if amount > 0 %}
+        <h4>{{ k_code }}（必要量：{{ amount }}m）</h4>
+
+        {% for r in stock_K[k_code] %}
+          <label>
+            <input type="radio" name="roll_{{ k_code }}" value="{{ r }}"
+              {% if loop.first %}checked{% endif %}>
+            {{ r }}m ロール
+          </label><br>
+        {% endfor %}
+      {% endif %}
+    {% endfor %}
+  {% endif %}
+
+  <!-- ⭐ 明細に追加（初期は無効） -->
+  <button type="submit" name="action" value="add_detail" id="addDetailBtn" disabled>
+    明細に追加
+  </button>
+
+  <h3>受注明細一覧</h3>
+
+  {% if details %}
+    <ul>
+      {% for d in details %}
+        <li>
+          {{ d.product_code }} × {{ d.quantity }}
+          （製造数量：{{ d.manufacture_qty }} / ステータス：{{ d.status }}）
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p>まだ明細がありません</p>
+  {% endif %}
+
+  <!-- ⭐ 受注する（初期は無効） -->
+  <button type="submit" name="action" value="submit_order" id="submitOrderBtn" disabled>
+    受注する
+  </button>
+
+</form>
+
+<a href="/">メニューに戻る</a>
+
+<!-- ⭐ ボタン制御スクリプト（完全版） -->
+<script>
+  window.onload = function() {
+
+    // need が存在するか（Jinja → JS の true/false に変換）
+    const needExists = "{{ need is defined and need|length > 0 }}";
+    const addDetailBtn = document.getElementById("addDetailBtn");
+
+    if (addDetailBtn && needExists === "True") {
+      addDetailBtn.disabled = false;
+    }
+
+    // details が存在するか
+    const detailsCount = Number("{{ details|length }}");
+    const submitOrderBtn = document.getElementById("submitOrderBtn");
+
+    if (submitOrderBtn && detailsCount > 0) {
+      submitOrderBtn.disabled = false;
+    }
+  };
+</script>
