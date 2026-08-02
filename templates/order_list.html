@@ -1,42 +1,38 @@
-<h2>受注一覧（ERP-mini）</h2>
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>受注一覧</title>
+</head>
+<body>
 
-<table border="1" cellpadding="5">
-  <tr>
-    <th>受注番号</th>
-    <th>受注日</th>
-    <th>入力者</th>
-    <th>お客様</th>
-    <th>お客様コード</th>
-    <th>発送先</th>
-    <th>住所</th>
-    <th>納期</th>
-    <th>配送方法</th>
-    <th>数量合計</th>
-    <th>明細数</th>
-  </tr>
+<p><a href="/">メニューへ戻る</a></p>
 
-  {% for o in orders %}
+<h2>受注一覧</h2>
+
+<table border="1">
     <tr>
-      <td>{{ o.order_no }}</td>
-      <td>{{ o.order_date }}</td>
-      <td>{{ o.input_user }}</td>
-      <td>{{ o.customer }}</td>
-      <td>{{ o.customer_code }}</td>
-      <td>{{ o.destination }}</td>
-      <td>{{ o.shipping_address }}</td>
-      <td>{{ o.delivery_date }}</td>
-      <td>{{ o.shipping_method }}</td>
-
-      <!-- 明細の数量合計 -->
-      <td>
-        {{ o.details | map(attribute='quantity') | sum }}
-      </td>
-
-      <!-- 明細数 -->
-      <td>{{ o.details | length }}</td>
+        <th>受注番号</th>
+        <th>得意先</th>
+        <th>納品先</th>
+        <th>品目コード</th>
+        <th>品目名</th>
+        <th>数量</th>
+        <th>納期</th>
     </tr>
-  {% endfor %}
+
+    {% for o in orders %}
+    <tr>
+        <td>{{ o.order_no }}</td>
+        <td>{{ o.customer }}</td>
+        <td>{{ o.destination }}</td>
+        <td>{{ o.item_code }}</td>
+        <td>{{ items[o.item_code].name }}</td>
+        <td>{{ o.qty }}</td>
+        <td>{{ o.due }}</td>
+    </tr>
+    {% endfor %}
 </table>
 
-<br>
-<a href="/">メニューに戻る</a>
+</body>
+</html>
