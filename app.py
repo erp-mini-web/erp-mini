@@ -41,21 +41,18 @@ items = {
 # ② BOMマスタ（多段階）
 # ============================================================
 bom = {
-    # --- 製品 → 織物（10個あたり） ---
     "Y001": {"K001": 10, "K002": 10},
     "Y002": {"K001": 30, "K002": 10},
     "Y003": {"K001": 10, "K003": 40},
     "Y004": {"K004": 30},
     "Y005": {"K005": 45},
 
-    # --- 織物 → 撚糸（100mあたり） ---
     "K001": {"H101": 1000},
     "K002": {"H102": 1000},
     "K003": {"H103": 1000},
     "K004": {"H104": 1000},
     "K005": {"H105": 1000},
 
-    # --- 撚糸 → 原糸（1000mあたり） ---
     "H101": {"H001": 2000, "H002": 1000},
     "H102": {"H001": 2000, "H002": 1000},
     "H103": {"H001": 1000, "H002": 1000, "H003": 1000},
@@ -88,27 +85,6 @@ customers = {
             "福岡": "福岡県福岡市博多区博多駅前1丁目",
             "熊本": "熊本県熊本市中央区手取本町"
         }
-    },
-    "D社": {
-        "code": "C004",
-        "destinations": {
-            "仙台": "宮城県仙台市青葉区中央1丁目",
-            "横浜": "神奈川県横浜市西区みなとみらい2丁目"
-        }
-    },
-    "E社": {
-        "code": "C005",
-        "destinations": {
-            "広島": "広島県広島市中区紙屋町1丁目",
-            "高松": "香川県高松市番町1丁目"
-        }
-    },
-    "F社": {
-        "code": "C006",
-        "destinations": {
-            "京都": "京都府京都市下京区四条通",
-            "神戸": "兵庫県神戸市中央区三宮町1丁目"
-        }
     }
 }
 
@@ -116,7 +92,6 @@ customers = {
 # ④ 棚番マスタ（LH / LK / LY）
 # ============================================================
 locations = {
-    # LH（原糸・撚糸・H系）
     "LH001": {"desc": "原糸置き場 001"},
     "LH002": {"desc": "原糸→撚糸設置１ 002"},
     "LH003": {"desc": "原糸→撚糸設置２ 003"},
@@ -127,14 +102,12 @@ locations = {
     "LH010": {"desc": "H出荷品置き場"},
     **{f"LH{str(i).zfill(3)}": {"desc": f"立体倉庫 {str(i).zfill(3)}"} for i in range(501, 600)},
 
-    # LK（織物・K系）
     "LK001": {"desc": "K1工場"},
     "LK002": {"desc": "K2工場"},
     "LK009": {"desc": "K搬入品置き場"},
     "LK010": {"desc": "K出荷品置き場"},
     **{f"LK{str(i).zfill(3)}": {"desc": f"K倉庫 {str(i).zfill(3)}"} for i in range(501, 600)},
 
-    # LY（製品・Y系）
     "LY001": {"desc": "湿式"},
     "LY002": {"desc": "乾式"},
     "LY003": {"desc": "乾式スリッター"},
@@ -184,12 +157,9 @@ stock_H = {code: {} for code in items if items[code]["type"] == "RM"}
 stock_K = {code: {} for code in items if items[code]["type"] == "SFG"}
 stock_Y = {code: {} for code in items if items[code]["type"] == "FG"}
 
-# 売上データ・受注データ
 sales_data = []
 orders = []
 order_counter = 1
-
-# ロット採番用
 lot_counter = {}
 
 def next_order_no():
@@ -228,7 +198,7 @@ def masters_menu():
     )
 
 # ============================================================
-# 入庫管理（棚番選択＋ロット自動採番＋受注番号任意）
+# 入庫管理（棚番選択＋ロット自動採番）
 # ============================================================
 @app.route("/receipts", methods=["GET", "POST"])
 def receipts():
@@ -262,7 +232,7 @@ def receipts():
     return f"{item_code} を {location_code} に {qty} 入庫しました（ロット: {lot_no}, 受注: {order_no}）"
 
 # ============================================================
-# 在庫表示（暫定：棚番別在庫をそのまま出す用）
+# 在庫一覧（棚番 × ロット × 数量 × 受注番号）
 # ============================================================
 @app.route("/stocks")
 def stocks():
@@ -276,127 +246,71 @@ def stocks():
     )
 
 # ============================================================
-# 売上・出荷など（既存ロジックは今後棚番対応に差し替え予定）
+# 出荷管理（棚番からピッキング）
 # ============================================================
-@app.route("/sales")
-def sales():
-    return render_template("sales.html", sales_data=sales_data)
+@app.route("/shipping", methods=["GET", "POST"])
+def shipping():
+    merged_stock = {**stock_H, **stock_K, **stock_Y}
 
-# 受注関連（既存の order / order_list はそのまま）
-@app.route("/order_list")
-def order_list():
-    return render_template("order_list.html", orders=orders)
-
-@app.route("/order", methods=["GET", "POST"])
-def order():
     if request.method == "GET":
         return render_template(
-            "order.html",
-            products=bom,
-            customers=customers,
-            details=[],
-            customer=None,
-            destination=None,
-            delivery_date=None,
-            shipping_method=None
+            "shipping.html",
+            items=items,
+            stock=merged_stock,
+            locations=locations,
+            selected_item=None,
+            selected_location=None
         )
 
     action = request.form.get("action")
+    item_code = request.form.get("item_code")
+    location_code = request.form.get("location_code")
 
-    input_user = request.form.get("input_user")
-    customer = request.form.get("customer")
-    destination = request.form.get("destination")
-    delivery_date = request.form.get("delivery_date")
-    shipping_method = request.form.get("shipping_method")
-
-    shipping_address = ""
-    if customer and destination:
-        shipping_address = customers[customer]["destinations"][destination]
-
-    details_raw = request.form.get("details_data")
-    details = json.loads(details_raw) if details_raw else []
-
-    product_code = request.form.get("product_code")
-    quantity_raw = request.form.get("quantity")
-
-    if action == "show_material":
-        quantity = int(quantity_raw)
-        manufacture_qty = ((quantity + 9) // 10) * 10
-        lot_count = manufacture_qty // 10
-        recipe = bom.get(product_code, {})
-        need = {}
-        for k_code, base_amount in recipe.items():
-            need[k_code] = base_amount * lot_count
-
+    if not action:
         return render_template(
-            "order.html",
-            products=bom,
-            customers=customers,
-            input_user=input_user,
-            customer=customer,
-            destination=destination,
-            delivery_date=delivery_date,
-            shipping_method=shipping_method,
-            shipping_address=shipping_address,
-            product_code=product_code,
-            quantity=quantity,
-            manufacture_qty=manufacture_qty,
-            need=need,
-            stock_K={},  # 棚番別在庫に変えたのでここは後で対応
-            details=details
+            "shipping.html",
+            items=items,
+            stock=merged_stock,
+            locations=locations,
+            selected_item=item_code,
+            selected_location=location_code
         )
 
-    if action == "add_detail":
-        quantity = int(quantity_raw)
-        manufacture_qty = ((quantity + 9) // 10) * 10
-        lot_count = manufacture_qty // 10
-        recipe = bom.get(product_code, {})
-        need = {}
-        roll_selection = {}
-        for k_code, base_amount in recipe.items():
-            need[k_code] = base_amount * lot_count
-            roll_selection[k_code] = 0  # 棚番別在庫対応は後で
+    lot_no = request.form.get("lot_no")
+    qty = int(request.form.get("qty"))
 
-        details.append({
-            "product_code": product_code,
-            "quantity": quantity,
-            "manufacture_qty": manufacture_qty,
-            "need": need,
-            "roll_selection": roll_selection,
-            "status": "未着手"
-        })
+    item_type = items[item_code]["type"]
+    if item_type == "RM":
+        stock = stock_H
+    elif item_type == "SFG":
+        stock = stock_K
+    else:
+        stock = stock_Y
 
-        return render_template(
-            "order.html",
-            products=bom,
-            customers=customers,
-            input_user=input_user,
-            customer=customer,
-            destination=destination,
-            delivery_date=delivery_date,
-            shipping_method=shipping_method,
-            shipping_address=shipping_address,
-            details=details
-        )
+    lots = stock[item_code][location_code]
 
-    if action == "submit_order":
-        order_no = next_order_no()
-        order_data = {
-            "order_no": order_no,
-            "order_date": datetime.now().strftime("%Y-%m-%d"),
-            "input_user": input_user,
-            "customer": customer,
-            "customer_code": customers[customer]["code"],
-            "destination": destination,
-            "shipping_address": shipping_address,
-            "delivery_date": delivery_date,
-            "shipping_method": shipping_method,
-            "details": details
-        }
-        orders.append(order_data)
-        return f"受注 {order_no} を登録しました（明細数：{len(details)}）"
+    for lot in lots:
+        if lot["lot"] == lot_no:
+            if lot["qty"] < qty:
+                return f"出荷数量がロット在庫を超えています（在庫: {lot['qty']}）"
 
-    return "不明な操作です"
+            lot["qty"] -= qty
+
+            if lot["qty"] == 0:
+                lots.remove(lot)
+
+            sales_data.append({
+                "item_code": item_code,
+                "lot": lot_no,
+                "qty": qty,
+                "location": location_code,
+                "order_no": lot["order_no"],
+                "date": datetime.now().strftime("%Y-%m-%d")
+            })
+
+            return f"{item_code} / ロット {lot_no} を {location_code} から {qty} 出荷しました"
+
+    return "ロットが見つかりません"
 
 # ============================================================
 # Render起動
