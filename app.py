@@ -392,6 +392,39 @@ def production_list():
                 })
 
     return render_template("production_list.html", production_records=production_records)
+
+# ============================================================
+# 受注登録（NEW）
+# ============================================================
+@app.route("/orders", methods=["GET", "POST"])
+def orders_menu():
+    if request.method == "GET":
+        return render_template(
+            "orders.html",
+            customers=customers,
+            items=items,
+            selected_customer=list(customers.keys())[0]
+        )
+
+    customer = request.form.get("customer")
+    destination = request.form.get("destination")
+    item_code = request.form.get("item_code")
+    qty = int(request.form.get("qty"))
+    due = request.form.get("due")
+
+    order_no = next_order_no()
+
+    orders.append({
+        "order_no": order_no,
+        "customer": customer,
+        "destination": destination,
+        "item_code": item_code,
+        "qty": qty,
+        "due": due
+    })
+
+    return f"受注登録完了：{order_no} / {customer} / {destination} / {item_code} / {qty} / 納期 {due}"
+
 # ============================================================
 # 棚卸（棚番別棚卸入力）
 # ============================================================
