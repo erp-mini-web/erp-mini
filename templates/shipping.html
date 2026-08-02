@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>出荷管理</title>
+</head>
+<body>
+
+<p><a href="/">メニューへ戻る</a></p>
+
+<h2>出荷管理（棚番からピッキング）</h2>
+
+<form method="POST">
+
+    <label>品目コード：</label>
+    <select name="item_code" onchange="this.form.submit()">
+        <option value="">選択してください</option>
+        {% for code, item in items.items() %}
+            <option value="{{ code }}" {% if code == selected_item %}selected{% endif %}>
+                {{ code }} ({{ item.name }})
+            </option>
+        {% endfor %}
+    </select>
+    <br><br>
+
+    {% if selected_item %}
+        <label>棚番：</label>
+        <select name="location_code" onchange="this.form.submit()">
+            <option value="">選択してください</option>
+            {% for loc, lots in stock[selected_item].items() %}
+                <option value="{{ loc }}" {% if loc == selected_location %}selected{% endif %}>
+                    {{ loc }} ({{ locations[loc].desc }})
+                </option>
+            {% endfor %}
+        </select>
+        <br><br>
+    {% endif %}
+
+    {% if selected_location %}
+        <label>ロット：</label>
+        <select name="lot_no">
+            {% for lot in stock[selected_item][selected_location] %}
+                <option value="{{ lot.lot }}">
+                    {{ lot.lot }} / 数量: {{ lot.qty }} / 受注: {{ lot.order_no }}
+                </option>
+            {% endfor %}
+        </select>
+        <br><br>
+
+        <label>出荷数量：</label>
+        <input type="number" name="qty" required>
+        <br><br>
+
+        <button type="submit" name="action" value="ship">出荷する</button>
+    {% endif %}
+
+</form>
+
+</body>
+</html>
