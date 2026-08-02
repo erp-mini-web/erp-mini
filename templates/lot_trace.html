@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>ロットトレース</title>
+</head>
+<body>
+
+<p><a href="/">メニューへ戻る</a></p>
+
+<h2>ロットトレース</h2>
+
+<form method="POST">
+    <label>ロット番号：</label>
+    <input type="text" name="lot_no" required>
+    <button type="submit">検索</button>
+</form>
+
+{% if result %}
+    <h3>在庫情報</h3>
+    <table border="1">
+        <tr>
+            <th>品目コード</th>
+            <th>品目名</th>
+            <th>棚番</th>
+            <th>数量</th>
+            <th>受注番号</th>
+        </tr>
+        {% for r in result.stock %}
+        <tr>
+            <td>{{ r.item_code }}</td>
+            <td>{{ r.item_name }}</td>
+            <td>{{ r.location }}</td>
+            <td>{{ r.qty }}</td>
+            <td>{{ r.order_no }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+
+    <h3>出荷履歴</h3>
+    <table border="1">
+        <tr>
+            <th>出荷日</th>
+            <th>品目コード</th>
+            <th>品目名</th>
+            <th>数量</th>
+            <th>棚番</th>
+            <th>受注番号</th>
+        </tr>
+        {% for r in result.shipping %}
+        <tr>
+            <td>{{ r.date }}</td>
+            <td>{{ r.item_code }}</td>
+            <td>{{ r.item_name }}</td>
+            <td>{{ r.qty }}</td>
+            <td>{{ r.location }}</td>
+            <td>{{ r.order_no }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+{% endif %}
+
+</body>
+</html>
